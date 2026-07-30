@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #111827;
+    background-color: #F8F9FB;
+  }
+  *:focus-visible {
+    outline: 2px solid #FF6B00;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #E5E7EB;
+    border-radius: 8px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #D1D5DB;
+  }
+}
+
+@layer components {
+  .hairline {
+    @apply border border-gray-100;
+  }
+}
+
+@layer utilities {
+  /* Subtle pulse used to flag new incoming orders in the kanban. */
+  .pulse-dot {
+    position: relative;
+  }
+  .pulse-dot::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.6);
+    animation: cravio-pulse 1.6s infinite;
+  }
+  @keyframes cravio-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(255, 107, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 107, 0, 0); }
+  }
+
+  /* Hide scrollbar on the time scroller while keeping it scrollable. */
+  .no-scrollbar {
+    scrollbar-width: none;            /* Firefox */
+    -ms-overflow-style: none;         /* IE/old Edge */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;                    /* Chromium / Safari */
+  }
+}
