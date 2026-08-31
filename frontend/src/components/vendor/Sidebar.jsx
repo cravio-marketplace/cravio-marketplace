@@ -32,7 +32,7 @@ export default function Sidebar({ activeView, setActiveView }) {
             {/* Desktop rail */}
             <aside className="hidden md:flex w-64 flex-col border-r border-gray-100 bg-white">
                 <div className="px-6 py-5 border-b border-gray-100">
-                    <p className="text-xl font-bold text-brand-orange">Cravio</p>
+                    <p className="text-xl font-bold text-brand-orange-500">Cravio</p>
                     <p className="text-xs text-gray-400 mt-0.5">Vendor dashboard</p>
                 </div>
                 <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -45,7 +45,7 @@ export default function Sidebar({ activeView, setActiveView }) {
                                 onClick={() => setActiveView(item.id)}
                                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
                                     active
-                                        ? 'bg-brand-orange-50 text-brand-orange'
+                                        ? 'bg-brand-orange-50 text-brand-orange-600'
                                         : 'text-gray-600 hover:bg-gray-50'
                                 }`}
                             >
@@ -71,7 +71,7 @@ export default function Sidebar({ activeView, setActiveView }) {
                                 key={item.id}
                                 onClick={() => setActiveView(item.id)}
                                 className={`flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium ${
-                                    active ? 'text-brand-orange' : 'text-gray-500'
+                                    active ? 'text-brand-orange-500' : 'text-gray-500'
                                 }`}
                             >
                                 <Icon size={20} />

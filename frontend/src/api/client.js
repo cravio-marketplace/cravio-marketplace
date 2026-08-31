@@ -22,7 +22,7 @@ if (!baseURL) {
 
 const API = axios.create({
     baseURL: baseURL || 'http://localhost:5000/api',
-    timeout: 15000,
+    timeout: 30000,
 });
 
 API.interceptors.request.use((config) => {

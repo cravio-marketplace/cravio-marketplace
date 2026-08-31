@@ -11,9 +11,6 @@ import supabase from './supabaseClient';
 export const login = (payload) => API.post('/auth/login', payload);
 export const signup = (payload) => API.post('/auth/signup', payload);
 
-export const sendOtp = (payload) => API.post('/auth/send-otp', payload);
-export const verifyOtp = (payload) => API.post('/auth/verify-otp', payload);
-
 export const changePassword = (payload) => API.post('/vendor/change-password', payload);
 
 /**

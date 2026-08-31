@@ -3,20 +3,19 @@
  *
  * Layout: logo + vendor name + status badge (left) | search (centre) |
  * notifications bell + profile menu (right).
+ *
+ * The bell is now a real `NotificationBell` that shows a pending-order
+ * count and a dropdown of the most recent pending orders. Realtime
+ * INSERTs on the orders table trigger a custom toast.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Bell, ChevronDown, LogOut, Search, Settings, Pause, Play } from 'lucide-react';
+import { ChevronDown, LogOut, Pause, Play, Search, Settings } from 'lucide-react';
 import Badge from '../common/Badge';
+import NotificationBell from './NotificationBell';
 import { useAuth } from '../../contexts/AuthContext';
 import { togglePause } from '../../api/vendor';
 import toast from 'react-hot-toast';
 import { formatNaira } from '../../utils/formatters';
-
-const STATUS_TONE = {
-    open: 'green',
-    paused: 'orange',
-    closed: 'red',
-};
 
 function statusLabel(vendor) {
     if (vendor?.status === 'closed') return { label: 'Closed', tone: 'red' };
@@ -24,8 +23,8 @@ function statusLabel(vendor) {
     return { label: 'Accepting orders', tone: 'green' };
 }
 
-export default function Header({ vendor, stats, onSearch }) {
-    const { signOut } = useAuth();
+export default function Header({ vendor, stats, onSearch, pendingOrders = [] }) {
+    const { signOut, updateVendor } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const menuRef = useRef(null);
     const [search, setSearch] = useState('');
@@ -44,19 +43,21 @@ export default function Header({ vendor, stats, onSearch }) {
     const onTogglePause = async () => {
         try {
             const { data } = await togglePause();
-            vendor.is_accepting_orders = data.is_accepting_orders;
+            updateVendor({ is_accepting_orders: data.is_accepting_orders });
             toast.success(data.is_accepting_orders ? 'Now accepting orders' : 'Paused');
-        } catch {
-            toast.error('Failed to update status');
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to update status');
         }
     };
+
+    const pendingCount = pendingOrders.filter((o) => o.status === 'pending').length;
 
     return (
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-gray-100">
             <div className="flex items-center justify-between gap-4 px-4 sm:px-6 py-3">
                 {/* Left: brand + vendor + status */}
                 <div className="flex items-center gap-3 min-w-0">
-                    <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-brand-orange text-white font-bold">
+                    <div className="hidden sm:flex h-10 w-10 items-center justify-center rounded-xl bg-brand-orange-500 text-white font-bold">
                         C
                     </div>
                     <div className="min-w-0">
@@ -91,8 +92,7 @@ export default function Header({ vendor, stats, onSearch }) {
                                 onSearch?.(e.target.value);
                             }}
                             placeholder="Search orders, menu items..."
-                            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 py-2.5 text-sm
-                                focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 py-2.5 text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-orange-200 focus:border-brand-orange-500"
                         />
                     </div>
                 </div>
@@ -106,16 +106,17 @@ export default function Header({ vendor, stats, onSearch }) {
                     >
                         {vendor?.is_accepting_orders ? <Pause size={18} /> : <Play size={18} />}
                     </button>
-                    <button className="relative h-10 w-10 inline-flex items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100">
-                        <Bell size={18} />
-                        <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-brand-orange" />
-                    </button>
+                    <NotificationBell
+                        pendingCount={pendingCount}
+                        pendingOrders={pendingOrders}
+                    />
                     <div className="relative" ref={menuRef}>
                         <button
                             onClick={() => setMenuOpen((v) => !v)}
                             className="flex items-center gap-2 rounded-xl pl-1 pr-2 py-1 hover:bg-gray-100"
+                            aria-label="Profile menu"
                         >
-                            <div className="h-9 w-9 rounded-full bg-brand-orange text-white flex items-center justify-center font-semibold">
+                            <div className="h-9 w-9 rounded-full bg-brand-orange-500 text-white flex items-center justify-center font-semibold">
                                 {vendor?.business_name?.charAt(0).toUpperCase() || 'V'}
                             </div>
                             <ChevronDown size={16} className="text-gray-500 hidden sm:block" />
@@ -125,7 +126,11 @@ export default function Header({ vendor, stats, onSearch }) {
                                 <button
                                     onClick={() => {
                                         setMenuOpen(false);
-                                        window.dispatchEvent(new CustomEvent('cravio:navigate', { detail: 'settings' }));
+                                        window.dispatchEvent(
+                                            new CustomEvent('cravio:navigate', {
+                                                detail: 'settings',
+                                            })
+                                        );
                                     }}
                                     className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
                                 >

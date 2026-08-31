@@ -30,9 +30,36 @@ async function login(req, res) {
         return res.status(400).json({ error: 'Email and password required' });
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return res.status(401).json({ error: error.message });
-
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+});
+    
+    console.log("LOGIN DATA:", data);
+    console.log("LOGIN ERROR:", error);
+    
+    if (error) {
+        console.error("Supabase login error:", error);
+    
+        if (/Invalid login credentials/i.test(error.message)) {
+            return res.status(401).json({
+                error: "Incorrect email or password.",
+                code: "INVALID_CREDENTIALS",
+            });
+        }
+    
+        return res.status(401).json({
+            error: error.message,
+            code: "LOGIN_FAILED",
+            details: error,
+        });
+    }
+    if (!data.user.email_confirmed_at) {
+        return res.status(403).json({
+            error: "Please verify your email before logging in.",
+            code: "EMAIL_NOT_VERIFIED",
+        });
+    }
     const { data: vendor, error: vendorError } = await supabase
         .from('vendors')
         .select('*')
@@ -125,7 +152,11 @@ async function signup(req, res) {
         email,
         password,
         email_confirm: false,
+        user_metadata: {
+            role: 'vendor',
+        },
     });
+    
     if (authError) {
         // Supabase will return "User already registered" here if the auth
         // email exists but the vendors row was deleted — surface it the same
@@ -191,14 +222,20 @@ async function signup(req, res) {
         vendor,
     });
 
-    res.json({
+    res.status(201).json({
         success: true,
-        message: 'Account created. Awaiting admin approval.',
+        message:
+            'Account created successfully. Please verify your email before signing in.',
+        verificationRequired: true,
+        approvalStatus: 'pending',
         risk: {
             score: risk.score,
             is_suspicious: risk.is_suspicious,
         },
     });
-}
-
-module.exports = { login, signup };
+    } // <-- closes signup()
+    
+    module.exports = {
+        login,
+        signup,
+    };

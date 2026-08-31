@@ -66,7 +66,7 @@ export default function FeaturedView({ menu = [] }) {
         <div className="max-w-3xl space-y-4">
             <Card className="p-5 bg-gradient-to-br from-brand-orange-50 to-white">
                 <div className="flex items-start gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-brand-orange text-white flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-xl bg-brand-orange-500 text-white flex items-center justify-center">
                         <Star size={18} />
                     </div>
                     <div className="flex-1">

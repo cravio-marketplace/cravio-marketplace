@@ -1,8 +1,12 @@
 /**
  * EditItemModal — create / edit a menu item.
  *
- * The form includes image upload (Supabase Storage), variations editor,
- * meal-time chips, and stock quantity with a low-stock alert.
+ * Image upload goes through `api/uploads.js` so the 5 MB limit, friendly
+ * error messages, and folder convention live in exactly one place. The
+ * modal owns the upload state (progress / failure) but the network
+ * mechanics are centralised.
+ *
+ * On save the parent gets a payload ready for POST/PUT /api/menu.
  */
 import { useState } from 'react';
 import { Plus, Trash2, Upload, X } from 'lucide-react';
@@ -11,7 +15,7 @@ import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
-import supabase from '../../api/supabaseClient';
+import { uploadMenuImage } from '../../api/uploads';
 import { MEAL_TIME_OPTIONS } from '../../utils/constants';
 
 export default function EditItemModal({ item, categories = [], onClose, onSave }) {
@@ -42,21 +46,17 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
         if (!file) return;
         setUploading(true);
         try {
-            const ext = file.name.split('.').pop();
-            const path = `menu/${Date.now()}.${ext}`;
-            const { error } = await supabase.storage
-                .from('menu-images')
-                .upload(path, file, { upsert: true });
-            if (error) throw error;
-            const { data } = supabase.storage.from('menu-images').getPublicUrl(path);
-            set({ image_url: data.publicUrl });
+            const { url } = await uploadMenuImage(file);
+            set({ image_url: url });
             toast.success('Image uploaded');
         } catch (e) {
-            toast.error('Image upload failed');
+            toast.error(e.message || 'Image upload failed');
         } finally {
             setUploading(false);
         }
     };
+
+    const clearImage = () => set({ image_url: '' });
 
     const addVariation = () =>
         set({
@@ -128,7 +128,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
             <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Image uploader */}
                 <div className="flex items-center gap-4">
-                    <div className="h-24 w-24 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                    <div className="h-24 w-24 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 relative">
                         {form.image_url ? (
                             <img
                                 src={form.image_url}
@@ -138,14 +138,25 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                         ) : (
                             <span className="text-xs text-gray-400">No image</span>
                         )}
+                        {form.image_url && !uploading && (
+                            <button
+                                type="button"
+                                onClick={clearImage}
+                                aria-label="Remove image"
+                                className="absolute top-1 right-1 h-6 w-6 rounded-full bg-white/90 text-gray-700 hover:bg-white flex items-center justify-center shadow"
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50">
+                    <label className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 disabled:opacity-50">
                         <Upload size={14} />
                         {uploading ? 'Uploading…' : 'Upload image'}
                         <input
                             type="file"
                             accept="image/*"
                             className="hidden"
+                            disabled={uploading}
                             onChange={(e) => uploadImage(e.target.files?.[0])}
                         />
                     </label>
@@ -222,7 +233,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                                     onClick={() => toggleMeal(m.id)}
                                     className={`rounded-xl px-3 py-1.5 text-sm flex items-center gap-1 border ${
                                         active
-                                            ? 'bg-brand-orange text-white border-brand-orange'
+                                            ? 'bg-brand-orange-500 text-white border-brand-orange-500'
                                             : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
                                     }`}
                                 >
@@ -239,7 +250,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                         <button
                             type="button"
                             onClick={addVariation}
-                            className="text-sm text-brand-orange flex items-center gap-1"
+                            className="text-sm text-brand-orange-600 flex items-center gap-1 hover:text-brand-orange-700"
                         >
                             <Plus size={14} /> Add variation
                         </button>
@@ -280,6 +291,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                                     <button
                                         type="button"
                                         onClick={() => removeVariation(idx)}
+                                        aria-label="Remove variation"
                                         className="col-span-2 h-9 w-9 mx-auto text-red-500 hover:bg-red-50 rounded-lg flex items-center justify-center"
                                     >
                                         <Trash2 size={14} />

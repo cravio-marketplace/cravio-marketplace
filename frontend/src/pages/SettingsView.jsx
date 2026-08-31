@@ -3,15 +3,20 @@
  *
  * Sections: Profile info, Password, Notifications, Payout (coming soon),
  * Danger Zone (delete account).
+ *
+ * Opening hours render as a one-line summary (e.g. "Mon–Fri 8:00 AM –
+ * 9:00 PM") rather than the raw CSV blob from the database. The full
+ * editor lives in the Edit Profile modal.
  */
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Bell, Edit2, LogOut, Shield, Trash2, Wallet } from 'lucide-react';
 import Card from '../components/common/Card';
-import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Toggle from '../components/common/Toggle';
 import ConfirmDialog from '../components/common/ConfirmDialog';
+import Badge from '../components/common/Badge';
+import { formatHoursSummary } from '../components/auth/HoursEditor';
 import EditProfileModal from '../components/vendor/EditProfileModal';
 import ChangePasswordModal from '../components/vendor/ChangePasswordModal';
 import { useAuth } from '../contexts/AuthContext';
@@ -38,8 +43,8 @@ export default function SettingsView() {
             const { data } = await toggleSms();
             updateVendor({ sms_enabled: data.sms_enabled });
             toast.success(data.sms_enabled ? 'SMS notifications on' : 'SMS off');
-        } catch {
-            toast.error('Failed to update');
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to update');
         } finally {
             setSaving(false);
         }
@@ -71,7 +76,7 @@ export default function SettingsView() {
                     <Row label="Business name" value={vendor?.business_name} />
                     <Row label="Phone" value={vendor?.phone} />
                     <Row label="Address" value={vendor?.address} />
-                    <Row label="Hours" value={vendor?.opening_hours} />
+                    <Row label="Hours" value={formatHoursSummary(vendor?.opening_hours) || '—'} />
                 </dl>
             </Card>
 
@@ -100,7 +105,9 @@ export default function SettingsView() {
                     label="Email digest"
                     description="Daily summary of sales and pending actions."
                     checked
-                    onChange={() => toast('Email digest will be configurable in a future release.')}
+                    onChange={() =>
+                        toast('Email digest will be configurable in a future release.')
+                    }
                 />
             </Card>
 
@@ -112,7 +119,7 @@ export default function SettingsView() {
                             Connect a bank account so we can send your earnings.
                         </p>
                     </div>
-                    <Badge text="Coming soon" />
+                    <Badge tone="orange">Coming soon</Badge>
                 </div>
             </Card>
 
@@ -156,7 +163,9 @@ export default function SettingsView() {
                 onClose={() => setShowDelete(false)}
                 onConfirm={() => {
                     setShowDelete(false);
-                    toast('Account deletion is queued — an admin will reach out within 24h.');
+                    toast(
+                        'Account deletion is queued — an admin will reach out within 24h.'
+                    );
                 }}
             />
         </div>
@@ -169,13 +178,5 @@ function Row({ label, value }) {
             <p className="text-xs text-gray-500">{label}</p>
             <p className="text-sm font-medium text-gray-900 mt-0.5">{value || '—'}</p>
         </div>
-    );
-}
-
-function Badge({ children }) {
-    return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-brand-orange-50 text-brand-orange-700 text-xs font-medium px-2.5 py-1">
-            {children}
-        </span>
     );
 }

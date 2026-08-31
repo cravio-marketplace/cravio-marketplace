@@ -29,7 +29,7 @@ export default function ForgotPassword() {
             if (error) throw error;
             setSent(true);
         } catch (err) {
-            toast.error(err?.message || 'Could not send reset email');
+            toast.error(err?.message || "Unable to send the password reset email.");
         } finally {
             setLoading(false);
         }
@@ -40,48 +40,51 @@ export default function ForgotPassword() {
             title="Reset your password"
             subtitle={
                 sent
-                    ? 'Check your inbox for a reset link.'
-                    : 'Enter the email tied to your vendor account.'
+                    ? "Check your inbox for a reset link."
+                    : "Enter the email tied to your vendor account."
             }
         >
-            {sent ? (
-                <div className="space-y-4 text-center">
-                    <div className="mx-auto h-14 w-14 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                        <CheckCircle2 size={26} />
-                    </div>
-                    <p className="text-sm text-gray-600">
-                        We sent a password-reset link to <span className="font-medium">{email}</span>.
-                        The link expires in 1 hour.
-                    </p>
-                    <Link to="/login" className="block">
-                        <Button variant="ghost" className="w-full">
-                            <ArrowLeft size={14} /> Back to sign in
-                        </Button>
+            <div className="mb-6">
+                <Link
+                    to="/login"
+                    className="inline-flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-brand-orange"
+                >
+                    <ArrowLeft size={16} />
+                    Back to Sign In
+                </Link>
+            </div>
+    
+            <form onSubmit={submit} className="space-y-4">
+                <Input
+                    type="email"
+                    label="Email"
+                    placeholder="you@business.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    leftIcon={<Mail size={16} />}
+                    autoComplete="email"
+                    required
+                />
+    
+                <Button
+                    type="submit"
+                    size="lg"
+                    loading={loading}
+                    className="w-full"
+                >
+                    Send reset link
+                </Button>
+    
+                <p className="text-sm text-center text-gray-500">
+                    Remembered it?{" "}
+                    <Link
+                        to="/login"
+                        className="text-brand-orange font-medium hover:underline"
+                    >
+                        Back to sign in
                     </Link>
-                </div>
-            ) : (
-                <form onSubmit={submit} className="space-y-4">
-                    <Input
-                        type="email"
-                        label="Email"
-                        placeholder="you@business.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        leftIcon={<Mail size={16} />}
-                        autoComplete="email"
-                        required
-                    />
-                    <Button type="submit" size="lg" loading={loading} className="w-full">
-                        Send reset link
-                    </Button>
-                    <p className="text-sm text-center text-gray-500">
-                        Remembered it?{' '}
-                        <Link to="/login" className="text-brand-orange font-medium hover:underline">
-                            Back to sign in
-                        </Link>
-                    </p>
-                </form>
-            )}
+                </p>
+            </form>
         </AuthShell>
     );
 }

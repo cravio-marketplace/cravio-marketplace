@@ -58,7 +58,7 @@ export default function MenuCard({ item, onEdit, onDelete, onToggleAvailability,
             <div className="p-3 flex-1 flex flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
                     <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
-                    <p className="font-bold text-brand-orange whitespace-nowrap">
+                    <p className="font-bold text-brand-orange-500 whitespace-nowrap">
                         {formatNaira(item.price)}
                     </p>
                 </div>

@@ -4,6 +4,8 @@
  * - Fetches the initial list via the REST API.
  * - Subscribes to Supabase realtime `postgres_changes` so new orders appear
  *   live without a manual refresh.
+ * - Exposes `error` so the UI can show a retry surface instead of a
+ *   stale empty screen when the initial fetch fails.
  *
  * Returns `{ orders, loading, error, refresh }`.
  */
@@ -17,10 +19,14 @@ export function useOrders(vendorId) {
     const [error, setError] = useState(null);
 
     const refresh = useCallback(async () => {
-        if (!vendorId) return;
+        if (!vendorId) {
+            setLoading(false);
+            return;
+        }
         try {
             const { data } = await ordersApi.fetchOrders();
             if (data?.success) setOrders(data.orders);
+            setError(null);
         } catch (e) {
             setError(e);
         } finally {

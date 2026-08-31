@@ -39,7 +39,7 @@ export default function AnalyticsView({ orders = [], menu = [] }) {
                                         {relativeTime(o.created_at)} · {o.status}
                                     </p>
                                 </div>
-                                <p className="font-semibold text-brand-orange">
+                                <p className="font-semibold text-brand-orange-500">
                                     {formatNaira(o.total_price)}
                                 </p>
                             </li>

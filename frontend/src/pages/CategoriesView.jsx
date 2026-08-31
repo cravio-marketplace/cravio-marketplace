@@ -1,6 +1,11 @@
 /**
  * CategoriesView — manage vendor categories and keyword auto-categorisation
  * rules in one tabbed screen.
+ *
+ * Categories: free-text list scoped to the current vendor. Duplicate names
+ * are blocked server-side with a 409; we surface the backend's friendly
+ * message so the user sees "You already have a category called X" instead
+ * of a raw error toast.
  */
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -28,8 +33,12 @@ function CategoriesSection() {
     const [loading, setLoading] = useState(false);
 
     const load = async () => {
-        const { data } = await fetchCategories();
-        setItems(data.categories || []);
+        try {
+            const { data } = await fetchCategories();
+            setItems(data.categories || []);
+        } catch {
+            toast.error('Could not load categories');
+        }
     };
 
     useEffect(() => {
@@ -45,8 +54,9 @@ function CategoriesSection() {
             setName('');
             toast.success('Category added');
             await load();
-        } catch {
-            toast.error('Failed to add category');
+        } catch (err) {
+            const msg = err?.response?.data?.error || 'Failed to add category';
+            toast.error(msg);
         } finally {
             setLoading(false);
         }
@@ -54,9 +64,13 @@ function CategoriesSection() {
 
     const remove = async (id) => {
         if (!window.confirm('Delete this category?')) return;
-        await deleteCategory(id);
-        toast.success('Category removed');
-        load();
+        try {
+            await deleteCategory(id);
+            toast.success('Category removed');
+            await load();
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to delete category');
+        }
     };
 
     return (
@@ -77,7 +91,13 @@ function CategoriesSection() {
                 </Button>
             </form>
             {items.length === 0 ? (
-                <EmptyState variant="menu" action="Add category" onAction={() => {}} />
+                <EmptyState
+                    variant="menu"
+                    title="No categories yet"
+                    description="Categories help students filter your menu. Try one like 'Swallows' or 'Drinks'."
+                    action="Add category"
+                    onAction={() => document.querySelector('input[placeholder="e.g. Swallows"]')?.focus()}
+                />
             ) : (
                 <ul className="space-y-2">
                     {items.map((c) => (
@@ -88,6 +108,7 @@ function CategoriesSection() {
                             <span className="text-sm font-medium text-gray-800">{c.name}</span>
                             <button
                                 onClick={() => remove(c.id)}
+                                aria-label={`Delete ${c.name}`}
                                 className="h-8 w-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center"
                             >
                                 <Trash2 size={14} />
@@ -107,16 +128,21 @@ function KeywordsSection() {
     const [categoryId, setCategoryId] = useState('');
 
     const load = async () => {
-        const [kw, cat] = await Promise.all([fetchKeywords(), fetchCategories()]);
-        setRules(kw.data.keywords || []);
-        setCategories(cat.data.categories || []);
-        if (cat.data.categories?.[0] && !categoryId) {
-            setCategoryId(String(cat.data.categories[0].id));
+        try {
+            const [kw, cat] = await Promise.all([fetchKeywords(), fetchCategories()]);
+            setRules(kw.data.keywords || []);
+            setCategories(cat.data.categories || []);
+            if (cat.data.categories?.[0] && !categoryId) {
+                setCategoryId(String(cat.data.categories[0].id));
+            }
+        } catch {
+            toast.error('Could not load auto-categorisation rules');
         }
     };
 
     useEffect(() => {
         load();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const add = async (e) => {
@@ -125,15 +151,23 @@ function KeywordsSection() {
             toast.error('Pick a keyword and a category');
             return;
         }
-        await createKeyword({ keyword, category_id: parseInt(categoryId, 10) });
-        setKeyword('');
-        toast.success('Rule added');
-        load();
+        try {
+            await createKeyword({ keyword, category_id: parseInt(categoryId, 10) });
+            setKeyword('');
+            toast.success('Rule added');
+            await load();
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to add rule');
+        }
     };
 
     const remove = async (id) => {
-        await deleteKeyword(id);
-        load();
+        try {
+            await deleteKeyword(id);
+            await load();
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to delete rule');
+        }
     };
 
     return (
@@ -173,6 +207,7 @@ function KeywordsSection() {
                             </div>
                             <button
                                 onClick={() => remove(r.id)}
+                                aria-label={`Delete rule for ${r.keyword}`}
                                 className="h-8 w-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center"
                             >
                                 <Trash2 size={14} />

@@ -78,7 +78,7 @@ export default function MenuGrid({
                         value={q}
                         onChange={(e) => setQ(e.target.value)}
                         placeholder="Search menu..."
-                        className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange"
+                        className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange-200 focus:border-brand-orange-500"
                     />
                 </div>
                 <Select
