@@ -171,7 +171,7 @@ CREATE POLICY "Vendors manage own tickets" ON support_tickets
 -- ============================================================
 -- 11. ENABLE REALTIME FOR ORDERS
 -- ============================================================
-ALTER PUBLICATION supabase_realtime ADD TABLE IF NOT EXISTS orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE orders;
 
 -- ============================================================
 -- 12. TRIGGER: AUTO-CREATE VENDOR ON SIGNUP (phone only)

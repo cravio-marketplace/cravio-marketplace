@@ -13,6 +13,8 @@
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth';
+import supabase from '../api/supabaseClient';
+import * as vendorApi from '../api/vendor';
 import { NETWORK_ERROR_MESSAGE } from '../api/client';
 
 const AuthContext = createContext(null);
@@ -48,64 +50,71 @@ export function AuthProvider({ children }) {
             isAuthenticated: !!token && !!vendor,
 
             async signIn(payload) {
-                const { data } = await authApi.login(payload);
-                setToken(data.token);
-                setVendor(data.vendor);
-                return data.vendor;
+                try {
+                    const { data } = await authApi.login(payload);
+            
+                    setToken(data.token);
+                    setVendor(data.vendor);
+            
+                    return data.vendor;
+                } catch (err) {
+                    if (err.isNetworkError) {
+                        const e = new Error(NETWORK_ERROR_MESSAGE);
+                        e.isNetworkError = true;
+                        throw e;
+                    }
+            
+                    throw err;
+                }
             },
 
             async signUp(payload) {
                 try {
                     return await authApi.signup(payload);
                 } catch (err) {
-                    // Surface a single, friendly string when the backend is
-                    // unreachable. Real API errors still bubble through
-                    // normally with response.data intact.
                     if (err.isNetworkError) {
                         const e = new Error(NETWORK_ERROR_MESSAGE);
                         e.isNetworkError = true;
                         throw e;
                     }
+            
                     throw err;
                 }
             },
 
-            async sendOtp(payload) {
+
+            async signOut() {
                 try {
-                    return await authApi.sendOtp(payload);
-                } catch (err) {
-                    if (err.isNetworkError) {
-                        const e = new Error(NETWORK_ERROR_MESSAGE);
-                        e.isNetworkError = true;
-                        throw e;
-                    }
-                    throw err;
+                    await supabase.auth.signOut();
+                } catch {
+                    // best-effort — local clear still runs below
+                } finally {
+                    localStorage.removeItem(TOKEN_KEY);
+                    localStorage.removeItem(VENDOR_KEY);
+
+                    setToken(null);
+                    setVendor(null);
                 }
             },
 
-            async verifyOtp(payload) {
+            async refreshVendor() {
                 try {
-                    return await authApi.verifyOtp(payload);
+                    const { data } = await vendorApi.getMe();
+                    // Backend returns { success, data: vendor } — accept both shapes.
+                    const next = data?.data || data?.vendor || data;
+                    if (next) setVendor(next);
+                    return next;
                 } catch (err) {
-                    if (err.isNetworkError) {
-                        const e = new Error(NETWORK_ERROR_MESSAGE);
-                        e.isNetworkError = true;
-                        throw e;
+                    if (err?.response?.status === 401 || err?.response?.status === 403) {
+                        // Token rejected — clear local state so the app falls back
+                        // to the login screen rather than staying in a broken state.
+                        localStorage.removeItem(TOKEN_KEY);
+                        localStorage.removeItem(VENDOR_KEY);
+                        setToken(null);
+                        setVendor(null);
                     }
                     throw err;
                 }
-            },
-
-            signOut() {
-                setToken(null);
-                setVendor(null);
-                // localStorage cleanup happens automatically via the effects above.
-            },
-
-            refreshVendor: async () => {
-                const { data } = await (await import('../api/vendor')).getMe();
-                setVendor(data.data);
-                return data.data;
             },
 
             updateVendor: (patch) => setVendor((prev) => ({ ...(prev || {}), ...patch })),

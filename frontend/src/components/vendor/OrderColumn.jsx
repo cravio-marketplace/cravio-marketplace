@@ -44,7 +44,7 @@ export default function OrderColumn({ status, orders, onAction, onViewAll }) {
         <Card className="p-4 flex flex-col min-h-[300px]">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-brand-orange-50 text-brand-orange flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-lg bg-brand-orange-50 text-brand-orange-500 flex items-center justify-center">
                         <Icon size={16} />
                     </div>
                     <h3 className="font-semibold text-gray-900">{def.title}</h3>
@@ -53,7 +53,7 @@ export default function OrderColumn({ status, orders, onAction, onViewAll }) {
                 {orders.length > visible.length && (
                     <button
                         onClick={onViewAll}
-                        className="text-xs font-medium text-brand-orange hover:underline"
+                        className="text-xs font-medium text-brand-orange-500 hover:underline"
                     >
                         View all
                     </button>
@@ -84,7 +84,7 @@ export default function OrderColumn({ status, orders, onAction, onViewAll }) {
                                 {def.cta && (
                                     <button
                                         onClick={() => onAction(order)}
-                                        className="text-xs font-medium rounded-lg px-3 py-1.5 bg-brand-orange text-white hover:bg-brand-orange-600"
+                                        className="text-xs font-medium rounded-lg px-3 py-1.5 bg-brand-orange-500 text-white hover:bg-brand-orange-600"
                                     >
                                         {def.cta}
                                     </button>

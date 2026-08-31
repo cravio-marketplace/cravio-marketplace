@@ -17,8 +17,26 @@ import AuthShell from '../components/auth/AuthShell';
 import RejectedBanner from '../components/auth/RejectedBanner';
 
 function loginErrorMessage(err) {
+    const status = err.response?.status;
     const data = err.response?.data;
-    return data?.error || 'Sign in failed. Check your credentials.';
+
+    if (data?.code === 'EMAIL_NOT_VERIFIED') {
+        return 'Please verify your email before signing in.';
+    }
+
+    if (data?.code === 'INVALID_CREDENTIALS') {
+        return 'Incorrect email or password.';
+    }
+
+    if (status === 403 && data?.error) {
+        return data.error;
+    }
+
+    if (err.isNetworkError) {
+        return err.friendlyMessage;
+    }
+
+    return data?.error || 'Unable to sign in. Please try again.';
 }
 
 export default function Login() {
@@ -50,24 +68,39 @@ export default function Login() {
         } catch (err) {
             const status = err.response?.status;
             const data = err.response?.data;
-
-            // Pending → bounce to the pending screen.
+        
+            if (data?.code === 'EMAIL_NOT_VERIFIED') {
+                const message = 'Please verify your email before signing in.';
+                setError(message);
+                toast.error(message);
+                return;
+            }
+        
             if (status === 403 && data?.verification_status === 'pending') {
-                toast.message('Your account is pending admin approval.');
+                toast.success('Your account is pending admin approval.');
                 navigate('/pending');
                 return;
             }
-            // Rejected → show inline banner with the reason, don't navigate.
+        
             if (status === 403 && data?.verification_status === 'rejected') {
-                setRejected({ reason: data.rejected_reason || data.error });
-                setError(data.error || 'Your vendor application was rejected.');
+                setRejected({
+                    reason: data.rejected_reason || data.error,
+                });
+        
+                setError(
+                    data.error ||
+                    'Your vendor application was rejected.'
+                );
+        
                 return;
             }
-
+        
             const message = loginErrorMessage(err);
+        
             setError(message);
             toast.error(message);
-        } finally {
+        }
+        finally {
             setLoading(false);
         }
     };
@@ -137,7 +170,7 @@ export default function Login() {
             <p className="text-sm text-gray-600 text-center mt-8">
                 Don't have an account?{' '}
                 <Link
-                    to="/verify-otp"
+                    to="/signup"
                     className="font-semibold text-brand-orange hover:text-brand-orange-600"
                 >
                     Apply to become a vendor

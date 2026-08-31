@@ -136,7 +136,7 @@ export default function OrderHistory() {
                                 <tr key={o.id} className="hover:bg-gray-50">
                                     <td className="px-4 py-3 font-medium text-gray-900">#{o.id}</td>
                                     <td className="px-4 py-3 text-gray-700">{o.student_name || '—'}</td>
-                                    <td className="px-4 py-3 font-semibold text-brand-orange">
+                                    <td className="px-4 py-3 font-semibold text-brand-orange-500">
                                         {formatNaira(o.total_price)}
                                     </td>
                                     <td className="px-4 py-3">

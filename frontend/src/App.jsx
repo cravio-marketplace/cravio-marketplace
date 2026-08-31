@@ -14,7 +14,6 @@ import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
-import VerifyOtp from './pages/VerifyOtp';
 import VerifyPending from './pages/VerifyPending';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -66,15 +65,14 @@ function Shell() {
                     </RedirectIfAuthed>
                 }
             />
-            <Route
-                path="/signup"
-                element={
-                    <RedirectIfAuthed>
-                        <SignUp />
-                    </RedirectIfAuthed>
-                }
-            />
-            <Route path="/verify-otp" element={<VerifyOtp />} />
+                <Route
+                    path="/signup"
+                    element={
+                        <RedirectIfAuthed>
+                            <SignUp />
+                        </RedirectIfAuthed>
+                    }
+                />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 

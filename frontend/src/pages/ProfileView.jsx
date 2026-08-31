@@ -13,8 +13,9 @@ import Button from '../components/common/Button';
 import EditProfileModal from '../components/vendor/EditProfileModal';
 import MenuGrid from '../components/vendor/MenuGrid';
 import OrderHistory from '../components/vendor/OrderHistory';
+import { formatHoursSummary } from '../components/auth/HoursEditor';
 import { useAuth } from '../contexts/AuthContext';
-import { formatNaira } from '../utils/formatters';
+import { updateProfile } from '../api/vendor';
 
 const TABS = [
     { id: 'info', label: 'Info' },
@@ -104,7 +105,7 @@ export default function ProfileView() {
                 <Card className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <Info icon={Phone} label="Phone" value={vendor?.phone} />
                     <Info icon={MapPin} label="Address" value={vendor?.address || 'Add an address'} />
-                    <Info icon={Clock} label="Hours" value={vendor?.opening_hours || 'Set hours'} />
+                    <Info icon={Clock} label="Hours" value={formatHoursSummary(vendor?.opening_hours) || 'Set hours'} />
                     <Info
                         icon={BadgeCheck}
                         label="Status"
@@ -143,8 +144,7 @@ export default function ProfileView() {
                     vendor={vendor}
                     onClose={() => setEditing(false)}
                     onSave={async (payload) => {
-                        const API = (await import('../api/vendor')).default;
-                        await API.put('/vendor/profile', payload);
+                        await updateProfile(payload);
                         await refreshVendor();
                         setEditing(false);
                     }}

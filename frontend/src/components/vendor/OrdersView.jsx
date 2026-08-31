@@ -1,16 +1,19 @@
 /**
  * OrdersView — 4-column kanban for incoming / active / completed orders.
  *
- * - New pending orders get a `pulse` animation so the vendor can see them
- *   even when looking away from the screen.
+ * - New pending orders get a `slide-up` animation so the vendor can see
+ *   them even when looking away from the screen.
  * - Each column links to the order history filtered to its status.
+ * - While the first fetch is in flight we render a skeleton column so the
+ *   layout doesn't reflow when data arrives.
  */
 import { useMemo } from 'react';
 import toast from 'react-hot-toast';
 import OrderColumn from './OrderColumn';
+import LoadingState from '../ui/LoadingState';
 import { acceptOrder, markOrderReady, completeOrder } from '../../api/orders';
 
-export default function OrdersView({ orders, refresh }) {
+export default function OrdersView({ orders, refresh, loading }) {
     const grouped = useMemo(() => {
         const g = { pending: [], accepted: [], ready: [], completed: [] };
         for (const o of orders) {
@@ -39,6 +42,10 @@ export default function OrdersView({ orders, refresh }) {
         }
     };
 
+    if (loading && orders.length === 0) {
+        return <LoadingState mode="block" label="Loading orders…" />;
+    }
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
             {Object.entries(grouped).map(([status, list]) => (
@@ -48,7 +55,6 @@ export default function OrdersView({ orders, refresh }) {
                     orders={list}
                     onAction={onAction}
                     onViewAll={() => {
-                        // Deep-linking to a filtered view could be added here.
                         toast(`Showing first ${list.length} ${status} orders`);
                     }}
                 />

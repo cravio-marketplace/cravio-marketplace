@@ -8,6 +8,8 @@ export { default as Modal } from './Modal';
 export { default as Tabs } from './Tabs';
 export { default as Badge } from './Badge';
 export { default as EmptyState } from './EmptyState';
+export { default as LoadingState } from './LoadingState';
+export { default as ErrorState } from './ErrorState';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as StatCard } from './StatCard';
 export { Skeleton, SkeletonText, SkeletonCard } from './Skeleton';
