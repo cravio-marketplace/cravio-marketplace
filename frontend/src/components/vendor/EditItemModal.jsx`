@@ -17,7 +17,6 @@ import Select from '../common/Select';
 import Button from '../common/Button';
 import { uploadMenuImage } from '../../api/uploads';
 import { createCategory } from '../../api/menu';
-import { mapError } from '../../api/client';
 import { MEAL_TIME_OPTIONS } from '../../utils/constants';
 
 export default function EditItemModal({ item, categories = [], onClose, onSave }) {
@@ -51,7 +50,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
             setNewCategoryName('');
             toast.success('Category created');
         } catch (err) {
-            toast.error(mapError(err));
+            toast.error(err?.response?.data?.error || 'Failed to create category');
         }
     };
 
@@ -122,7 +121,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
             await onSave(payload);
             onClose?.();
         } catch (err) {
-            toast.error(mapError(err));
+            toast.error(err?.response?.data?.error || 'Save failed');
         } finally {
             setLoading(false);
         }
@@ -145,135 +144,117 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                 </>
             }
         >
-            <form onSubmit={handleSubmit} className="space-y-5">
-                {/* Image uploader */}
-                <div className="flex items-center gap-4">
-                    <div className="h-24 w-24 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 relative">
-                        {form.image_url ? (
-                            <img
-                                src={form.image_url}
-                                alt=""
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <span className="text-xs text-gray-400">No image</span>
-                        )}
-                        {form.image_url && !uploading && (
-                            <button
-                                type="button"
-                                onClick={clearImage}
-                                aria-label="Remove image"
-                                className="absolute top-1 right-1 h-6 w-6 rounded-full bg-white/90 text-gray-700 hover:bg-white flex items-center justify-center shadow"
-                            >
-                                <X size={12} />
-                            </button>
-                        )}
+            <form onSubmit={handleSubmit} className="space-y-8">
+                {/* Section 1: Basic Info */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <div className="h-6 w-6 rounded-full bg-brand-orange-100 text-brand-orange-600 flex items-center justify-center text-xs font-bold">1</div>
+                        <h4 className="font-semibold text-gray-900">Basic Information</h4>
                     </div>
-                    <label className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 disabled:opacity-50">
-                        <Upload size={14} />
-                        {uploading ? 'Uploading…' : 'Upload image'}
-                        <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            disabled={uploading}
-                            onChange={(e) => uploadImage(e.target.files?.[0])}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input
+                            label="Name"
+                            value={form.name}
+                            onChange={(e) => set({ name: e.target.value })}
+                            placeholder="Jollof rice"
+                            required
                         />
-                    </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                        label="Name"
-                        value={form.name}
-                        onChange={(e) => set({ name: e.target.value })}
-                        placeholder="Jollof rice"
-                        required
-                    />
-                    <Input
-                        label="Price (₦)"
-                        type="number"
-                        min={0}
-                        step="0.01"
-                        value={form.price}
-                        onChange={(e) => set({ price: e.target.value })}
-                        placeholder="1500"
-                        required
-                    />
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {isCreatingCategory ? (
-                        <div className="flex flex-col gap-1.5">
-                            <label className="block text-sm font-medium text-gray-700">New Category</label>
-                            <div className="flex gap-2">
-                                <Input
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    placeholder="e.g. Desserts"
-                                    autoFocus
-                                />
-                                <Button onClick={handleCreateCategory} size="sm" loading={loading}>
-                                    Create
-                                </Button>
-                                <Button variant="ghost" onClick={() => setIsCreatingCategory(false)} size="sm">
-                                    Cancel
-                                </Button>
+                        <Input
+                            label="Price (₦)"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={form.price}
+                            onChange={(e) => set({ price: e.target.value })}
+                            placeholder="1500"
+                            required
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {isCreatingCategory ? (
+                            <div className="flex flex-col gap-1.5">
+                                <label className="block text-sm font-medium text-gray-700">New Category</label>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={newCategoryName}
+                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                        placeholder="e.g. Desserts"
+                                        autoFocus
+                                    />
+                                    <Button onClick={handleCreateCategory} size="sm" loading={loading}>
+                                        Create
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => setIsCreatingCategory(false)} size="sm">
+                                        Cancel
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
-                    ) : (
+                        ) : (
+                            <div className="flex flex-col gap-1.5">
+                                <Select
+                                    label="Category"
+                                    value={form.category}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === 'CREATE_NEW') {
+                                            setIsCreatingCategory(true);
+                                        } else {
+                                            set({ category: val });
+                                        }
+                                    }}
+                                    options={[
+                                        { value: '', label: 'Uncategorized' },
+                                        ...categories.map((c) => ({ value: c.name, label: c.name })),
+                                        { value: 'CREATE_NEW', label: '+ Create new category', className: 'text-brand-orange-600 font-medium' },
+                                    ]}
+                                />
+                            </div>
+                        )}
+                        <Input
+                            label="Low-stock alert at"
+                            type="number"
+                            min={0}
+                            value={form.low_stock_threshold}
+                            onChange={(e) => set({ low_stock_threshold: e.target.value })}
+                            hint="Show an orange badge when stock falls to or below this number."
+                        />
+                    </div>
+                </div>
+
+                {/* Section 2: Availability */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <div className="h-6 w-6 rounded-full bg-brand-orange-100 text-brand-orange-600 flex items-center justify-center text-xs font-bold">2</div>
+                        <h4 className="font-semibold text-gray-900">Availability & Stock</h4>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Input
+                            label="Stock (leave empty for unlimited)"
+                            type="number"
+                            min={0}
+                            value={form.quantity}
+                            onChange={(e) => set({ quantity: e.target.value })}
+                        />
                         <div className="flex flex-col gap-1.5">
+                            <label className="block text-sm font-medium text-gray-700">Available for ordering?</label>
                             <Select
-                                label="Category"
-                                value={form.category}
-                                onChange={(e) => set({ category: e.target.value })}
+                                value={String(form.available)}
+                                onChange={(e) => set({ available: e.target.value === 'true' })}
                                 options={[
-                                    { value: '', label: 'Uncategorized' },
-                                    ...categories.map((c) => ({ value: c.name, label: c.name })),
-                                    { value: 'CREATE_NEW', label: '+ Create new category', className: 'text-brand-orange-600 font-medium' },
+                                    { value: 'true', label: 'Available' },
+                                    { value: 'false', label: 'Hidden' },
                                 ]}
-                                // We need to handle the 'CREATE_NEW' value specifically
-                                onSelect={(val) => {
-                                    if (val === 'CREATE_NEW') {
-                                        setIsCreatingCategory(true);
-                                    } else {
-                                        set({ category: val });
-                                    }
-                                }}
                             />
                         </div>
-                    )}
-                    <Input
-                        label="Low-stock alert at"
-                        type="number"
-                        min={0}
-                        value={form.low_stock_threshold}
-                        onChange={(e) => set({ low_stock_threshold: e.target.value })}
-                        hint="Show an orange badge when stock falls to or below this number."
-                    />
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Input
-                        label="Stock (leave empty for unlimited)"
-                        type="number"
-                        min={0}
-                        value={form.quantity}
-                        onChange={(e) => set({ quantity: e.target.value })}
-                    />
-                    <Select
-                        label="Available for ordering?"
-                        value={String(form.available)}
-                        onChange={(e) => set({ available: e.target.value === 'true' })}
-                        options={[
-                            { value: 'true', label: 'Available' },
-                            { value: 'false', label: 'Hidden' },
-                        ]}
-                    />
-                </div>
-
-                <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Meal time</p>
+                {/* Section 3: Meal Time */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <div className="h-6 w-6 rounded-full bg-brand-orange-100 text-brand-orange-600 flex items-center justify-center text-xs font-bold">3</div>
+                        <h4 className="font-semibold text-gray-900">Meal Time</h4>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                         {MEAL_TIME_OPTIONS.map((m) => {
                             const active = form.meal_time.includes(m.id);
@@ -295,9 +276,55 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                     </div>
                 </div>
 
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Variations</p>
+                {/* Section 4: Image */}
+                <div className="space-y-4">
+                    <div className="flex items-center gap-2 border-b border-gray-100 pb-2">
+                        <div className="h-6 w-6 rounded-full bg-brand-orange-100 text-brand-orange-600 flex items-center justify-center text-xs font-bold">4</div>
+                        <h4 className="font-semibold text-gray-900">Item Photo</h4>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="h-24 w-24 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 relative">
+                            {form.image_url ? (
+                                <img
+                                    src={form.image_url}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <span className="text-xs text-gray-400">No image</span>
+                            )}
+                            {form.image_url && !uploading && (
+                                <button
+                                    type="button"
+                                    onClick={clearImage}
+                                    aria-label="Remove image"
+                                    className="absolute top-1 right-1 h-6 w-6 rounded-full bg-white/90 text-gray-700 hover:bg-white flex items-center justify-center shadow"
+                                >
+                                    <X size={12} />
+                                </button>
+                            )}
+                        </div>
+                        <label className="inline-flex items-center gap-2 rounded-xl border border-dashed border-gray-300 px-3 py-2 text-sm cursor-pointer hover:bg-gray-50 disabled:opacity-50">
+                            <Upload size={14} />
+                            {uploading ? 'Uploading…' : 'Upload image'}
+                            <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                disabled={uploading}
+                                onChange={(e) => uploadImage(e.target.files?.[0])}
+                            />
+                        </label>
+                    </div>
+                </div>
+
+                {/* Section 5: Variations */}
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-2">
+                        <div className="flex items-center gap-2">
+                            <div className="h-6 w-6 rounded-full bg-brand-orange-100 text-brand-orange-600 flex items-center justify-center text-xs font-bold">5</div>
+                            <h4 className="font-semibold text-gray-900">Variations</h4>
+                        </div>
                         <button
                             type="button"
                             onClick={addVariation}

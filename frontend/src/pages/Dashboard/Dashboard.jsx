@@ -15,7 +15,7 @@
  */
 import { useCallback, useEffect, useMemo, useState, memo } from 'react';
 import toast from 'react-hot-toast';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Plus } from 'lucide-react';
 import Sidebar from '../../components/vendor/Sidebar';
 import Header from '../../components/vendor/Header';
 import StatsCards from '../../components/vendor/StatsCards';
@@ -40,6 +40,126 @@ import ErrorState from '../../components/ui/ErrorState';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+
+/**
+ * QuickActions — small row above the kanban with the two shortcuts the
+ * vendor is most likely to take from the orders screen: jump to pending
+ * orders (filtered history) and add a new menu item.
+ *
+ * The pending tile links to the same kanban's pending column, so it
+ * mostly serves as an at-a-glance reminder rather than navigation.
+ */
+function QuickActions({ pendingCount, lowStockCount, onAddItem }) {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Card className="p-4 flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-gray-500">Pending orders</p>
+                    <p className="text-2xl font-semibold text-gray-900 mt-0.5">{pendingCount}</p>
+                </div>
+                <Badge tone={pendingCount ? 'orange' : 'gray'} dot>
+                    {pendingCount ? 'Needs attention' : 'All clear'}
+                </Badge>
+            </Card>
+            <Card className="p-4 flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-gray-500">Low-stock items</p>
+                    <p className="text-2xl font-semibold text-gray-900 mt-0.5">{lowStockCount}</p>
+                </div>
+                <Badge tone={lowStockCount ? 'red' : 'success'} dot>
+                    {lowStockCount ? 'Restock soon' : 'Stocked up'}
+                </Badge>
+            </Card>
+            <Card className="p-4 flex items-center justify-between bg-brand-orange-50 border-brand-orange-200">
+                <div className="min-w-0">
+                    <p className="text-xs text-brand-orange-600 font-semibold">Quick Action</p>
+                    <p className="text-sm font-bold text-gray-900 mt-0.5">Add new food item</p>
+                </div>
+                <Button onClick={onAddItem} size="sm">
+                    <Plus size={14} /> Add
+                </Button>
+            </Card>
+        </div>
+    );
+}
+
+/**
+ * OrdersScreen — content of the orders tab. Pulled out to keep the
+ * Dashboard shell compact. Renders low-stock banner, stats, kanban, and
+ * history; each region has its own loading / error state.
+ */
+const OrdersScreen = memo(function OrdersScreen({
+    orders,
+    stats,
+    statsError,
+    onRetryStats,
+    ordersError,
+    refreshOrders,
+    ordersLoading,
+    lowStock,
+    onAddItem,
+}) {
+    return (
+        <>
+            <QuickActions
+                pendingCount={orders.filter((o) => o.status === 'pending').length}
+                lowStockCount={lowStock.length}
+                onAddItem={onAddItem}
+            />
+
+            {lowStock.length > 0 && (
+                <Card className="p-4 bg-amber-50 border border-amber-200">
+                    <div className="flex items-start gap-3">
+                        <div className="h-9 w-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+                            <AlertTriangle size={18} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-amber-900">
+                                {lowStock.length} item{lowStock.length === 1 ? '' : 's'} low on stock
+                            </p>
+                            <p className="text-sm text-amber-800 mt-0.5">
+                                Restock soon to avoid selling out:{' '}
+                                {lowStock.slice(0, 3).map((i) => i.name).join(', ')}
+                                {lowStock.length > 3
+                                    ? ` and ${lowStock.length - 3} more`
+                                    : ''}
+                                .
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
+            {statsError ? (
+                <ErrorState
+                    title="Couldn't load your stats"
+                    description={statsError?.message || "We had trouble pulling today's numbers. Your orders are still safe."}
+                    onRetry={onRetryStats}
+                />
+            ) : (
+                <StatsCards stats={stats} />
+            )}
+
+            {ordersError ? (
+                <Card className="p-6">
+                    <ErrorState
+                        title="Couldn't load orders"
+                        description={ordersError?.message || "Check your connection and try again."}
+                        onRetry={refreshOrders}
+                    />
+                </Card>
+            ) : (
+                <OrdersView
+                    orders={orders}
+                    refresh={refreshOrders}
+                    loading={ordersLoading}
+                />
+            )}
+
+            <OrderHistory />
+        </>
+    );
+});
 
 export default function Dashboard() {
     const { vendor, updateVendor } = useAuth();
@@ -84,7 +204,7 @@ export default function Dashboard() {
     useEffect(() => {
         loadDashboard();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [vendor?.id, pendingCount]);
+    }, [vendor?.id, pendingCount, loadDashboard]);
 
     useEffect(() => {
         const handler = (e) => e.detail && setActiveView(e.detail);
@@ -226,120 +346,3 @@ export default function Dashboard() {
     );
 }
 
-/**
- * OrdersScreen — content of the orders tab. Pulled out to keep the
- * Dashboard shell compact. Renders low-stock banner, stats, kanban, and
- * history; each region has its own loading / error state.
- */
-const OrdersScreen = memo(function OrdersScreen({
-    orders,
-    stats,
-    statsError,
-    onRetryStats,
-    ordersError,
-    refreshOrders,
-    ordersLoading,
-    lowStock,
-    onAddItem,
-}) {
-    return (
-        <>
-            <QuickActions
-                pendingCount={orders.filter((o) => o.status === 'pending').length}
-                lowStockCount={lowStock.length}
-                onAddItem={onAddItem}
-            />
-
-            {lowStock.length > 0 && (
-                <Card className="p-4 bg-amber-50 border border-amber-200">
-                    <div className="flex items-start gap-3">
-                        <div className="h-9 w-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
-                            <AlertTriangle size={18} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-amber-900">
-                                {lowStock.length} item{lowStock.length === 1 ? '' : 's'} low on stock
-                            </p>
-                            <p className="text-sm text-amber-800 mt-0.5">
-                                Restock soon to avoid selling out:{' '}
-                                {lowStock.slice(0, 3).map((i) => i.name).join(', ')}
-                                {lowStock.length > 3
-                                    ? ` and ${lowStock.length - 3} more`
-                                    : ''}
-                                .
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-            )}
-
-            {statsError ? (
-                <ErrorState
-                    title="Couldn't load your stats"
-                    description="We had trouble pulling today's numbers. Your orders are still safe."
-                    onRetry={onRetryStats}
-                />
-            ) : (
-                <StatsCards stats={stats} />
-            )}
-
-            {ordersError ? (
-                <Card className="p-6">
-                    <ErrorState
-                        title="Couldn't load orders"
-                        description="Check your connection and try again."
-                        onRetry={refreshOrders}
-                    />
-                </Card>
-            ) : (
-                <OrdersView
-                    orders={orders}
-                    refresh={refreshOrders}
-                    loading={ordersLoading}
-                />
-            )}
-
-            <OrderHistory />
-        </>
-    );
-});
-
-/**
- * QuickActions — small row above the kanban with the two shortcuts the
- * vendor is most likely to take from the orders screen: jump to pending
- * orders (filtered history) and add a new menu item.
- *
- * The pending tile links to the same kanban's pending column, so it
- * mostly serves as an at-a-glance reminder rather than navigation.
- */
-function QuickActions({ pendingCount, lowStockCount, onAddItem }) {
-    return (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Card className="p-4 flex items-center justify-between">
-                <div>
-                    <p className="text-xs text-gray-500">Pending orders</p>
-                    <p className="text-2xl font-semibold text-gray-900 mt-0.5">{pendingCount}</p>
-                </div>
-                <Badge tone={pendingCount ? 'orange' : 'gray'} dot>
-                    {pendingCount ? 'Needs attention' : 'All clear'}
-                </Badge>
-            </Card>
-            <Card className="p-4 flex items-center justify-between">
-                <div>
-                    <p className="text-xs text-gray-500">Low-stock items</p>
-                    <p className="text-2xl font-semibold text-gray-900 mt-0.5">{lowStockCount}</p>
-                </div>
-                <Badge tone={lowStockCount ? 'red' : 'success'} dot>
-                    {lowStockCount ? 'Restock soon' : 'Stocked up'}
-                </Badge>
-            </Card>
-            <Card className="p-4 flex items-center justify-between">
-                <div className="min-w-0">
-                    <p className="text-xs text-gray-500">Quick add</p>
-                    <p className="text-sm font-medium text-gray-900 mt-0.5">New menu item</p>
-                </div>
-                <Button onClick={onAddItem}>Add</Button>
-            </Card>
-        </div>
-    );
-}

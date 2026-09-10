@@ -1,43 +1,46 @@
 # 🍽️ Cravio Marketplace
-
+ 
 **Cravio** is a food ordering platform built for Nigerian university campuses.
 It connects students with campus vendors, letting them order food ahead, skip
 the queue, and get real-time updates.
-
+ 
 **Links**
 - **Live App:** https://cravio-marketplace.vercel.app
 - **Backend API:** https://cravio-marketplace.onrender.com
 - **Supabase Studio:** (your project URL)
 - **GitHub:** https://github.com/fataiadams04/Cravio-marketplace
-
+ 
 ---
-
+ 
 ## 🚀 Features
-
+ 
 ### Vendor Dashboard
-- [x] Login & sign-up with admin approval flow
-- [x] Real-time order management (accept → ready → complete)
-- [x] Menu management with stock, categories, variations
-- [x] Hero stats: today's revenue, total orders, pending actions, active orders
-- [x] Bulk menu upload (CSV)
-- [x] Auto-categorisation via keyword rules
-- [x] Featured item requests (priority 1-10, expiry 3-30 days)
-- [x] Support tickets with categories + status flow
-- [x] Stock auto-decrement + low-stock alerts + restock + audit log
-- [x] Order history with date/status filter and CSV export
-- [x] Restaurant profile with cover, logo, verification badge, tabbed sections
-- [x] Settings (Profile, Password, Notifications, Payout placeholder, Danger zone)
-
+- [x] **Automated Onboarding**: Email-verified automated approval flow for new vendors.
+- [x] **High-Velocity Menu Management**: 
+    - Instant category creation with optimistic UI and keyboard shortcuts.
+    - Integrated "Add Food" workflow with inline category creation.
+    - Professional grouped menu view with detailed item rows.
+- [x] **Real-time Order Management**: (accept → ready → complete) with realtime toasts.
+- [x] **Advanced Inventory**: Stock auto-decrement, low-stock alerts, and manual restock audit logs.
+- [x] **Auto-categorisation**: Intelligent menu grouping via keyword-based mapping rules.
+- [x] **Featured Items**: Priority-based promotion requests with expiry tracking.
+- [x] **Support System**: Integrated ticket system with categories and status tracking.
+- [x] **Business Profile**: Professional cover, logo, and verification badge management.
+- [x] **Analytics**: Hero stats for revenue, total orders, and pending actions.
+- [x] **Bulk Operations**: CSV-based bulk menu upload.
+- [x] **Account Settings**: Profile, password, and notification management.
+- [x] **Responsive Design**: Fully optimized for Desktop, Tablet, and Mobile.
+ 
 ### Student App (Coming Soon)
 - [ ] Browse restaurants by category & meal time
-- [ ] View menu with stock & variations
+- [ ] and view menu with stock & variations
 - [ ] Place orders with real-time pickup codes
 - [ ] Order history & tracking
-
+ 
 ---
-
+ 
 ## 📦 Tech Stack
-
+ 
 | Layer       | Technology                           |
 |-------------|--------------------------------------|
 | Frontend    | React + Vite + Tailwind CSS          |
@@ -48,11 +51,12 @@ the queue, and get real-time updates.
 | Realtime    | Supabase Realtime (postgres_changes) |
 | Deployment  | Render (backend) + Vercel (frontend) |
 | Email       | Formspree (admin notifications)      |
-
+| Error Handling | Custom Human-Readable Error Mapping |
+ 
 ---
-
+ 
 ## 🏗️ Project Structure
-
+ 
 ```
 cravio-marketplace/
 ├── backend/                       # Node.js / Express API
@@ -81,25 +85,26 @@ cravio-marketplace/
 ├── supabase/
 │   └── migrations/
 │       └── 20250617000000_init.sql
+│   └── ... (additional migrations)
 ├── README.md
 └── CHANGELOG.md
 ```
-
+ 
 ---
-
+ 
 ## 🔧 Installation & Setup
-
+ 
 ### Prerequisites
 - Node.js (v20+)
 - A Supabase project (free tier is fine)
 - npm or yarn
-
+ 
 ### 1. Clone the repository
 ```bash
 git clone https://github.com/fataiadams04/Cravio-marketplace.git
 cd Cravio-marketplace
 ```
-
+ 
 ### 2. Backend setup
 ```bash
 cd backend
@@ -107,7 +112,7 @@ npm install
 cp .env.example .env   # then fill in your keys
 npm run dev
 ```
-
+ 
 ### 3. Frontend setup
 ```bash
 cd frontend
@@ -115,14 +120,14 @@ npm install
 cp .env.example .env   # then fill in your keys
 npm run dev
 ```
-
+ 
 ### 4. Database setup
-Open `supabase/migrations/20250617000000_init.sql` in the Supabase SQL
-Editor and run it. The script creates the tables, RLS policies, realtime
+Open `supabase/migrations/` and run the SQL scripts in the Supabase SQL
+Editor in chronological order. The primary script creates the tables, RLS policies, realtime
 publication, and the `handle_new_vendor` trigger.
-
+ 
 ### 5. Environment variables
-
+ 
 **Backend (`backend/.env`)**
 ```env
 PORT=5000
@@ -133,18 +138,18 @@ FRONTEND_URL=http://localhost:5173
 JWT_SECRET=any_long_random_string
 NODE_ENV=development
 ```
-
+ 
 **Frontend (`frontend/.env`)**
 ```env
 VITE_API_URL=http://localhost:5000/api
 VITE_SUPABASE_URL=your_project_url
 VITE_SUPABASE_ANON_KEY=your_anon_key
 ```
-
+ 
 ---
-
+ 
 ## 🚀 Deployment
-
+ 
 ### Backend (Render)
 1. Push your repo to GitHub.
 2. Create a new Web Service on Render pointing at the `backend/` folder.
@@ -152,20 +157,20 @@ VITE_SUPABASE_ANON_KEY=your_anon_key
 4. Start command: `cd backend && npm start`
 5. Add the environment variables listed above.
 6. Deploy.
-
+ 
 ### Frontend (Vercel)
 1. Import the repo into Vercel.
 2. Set the **Root Directory** to `frontend`.
 3. Add `VITE_API_URL`, `VITE_SUPABASE_URL`, and `VITE_SUPABASE_ANON_KEY`
    in the project settings.
 4. Deploy.
-
+ 
 ---
-
+ 
 ## 📊 Database Schema
-
-See `supabase/migrations/20250617000000_init.sql` for the full schema.
-
+ 
+See `supabase/migrations/` for the full schema.
+ 
 **Key tables**
 - `vendors` – Restaurant accounts (status, verification, hours, images)
 - `menu_items` – Food items with stock, low-stock threshold, meal times
@@ -176,43 +181,43 @@ See `supabase/migrations/20250617000000_init.sql` for the full schema.
 - `featured_items` – Promotion requests
 - `support_tickets` – Vendor support with category + status
 - `stock_logs` – Audit trail of stock changes (manual + auto)
-
+ 
 ---
-
+ 
 ## 🧪 Admin Tasks (manual for now)
-
+ 
 Until we ship an admin web UI, admin work happens in the Supabase Studio:
-
-- **Approve a vendor:** set `vendors.verification_status = 'open'`
+ 
+- **Approve a vendor:** set `vendors.verification_status = 'accepted'`
 - **Reject a vendor:** set `verification_status = 'rejected'` and add the
   reason in `rejected_reason`
 - **Approve a featured request:** set `featured_items.status = 'approved'`
-
+ 
 ---
-
+ 
 ## 🤝 Contributing
-
+ 
 1. Fork the repository.
 2. Create your branch: `git checkout -b feature/amazing-feature`
 3. Commit: `git commit -m 'Add amazing feature'`
 4. Push: `git push origin feature/amazing-feature`
 5. Open a Pull Request.
-
+ 
 ---
-
+ 
 ## 📝 Changelog
-
+ 
 See [CHANGELOG.md](./CHANGELOG.md) for the full version history.
-
+ 
 ---
-
+ 
 ## 📄 License
-
+ 
 MIT © Cravio Marketplace
-
+ 
 ---
-
+ 
 ## 📬 Contact
-
+ 
 Creator: Fatai Adams
 GitHub: [@fataiadams04](https://github.com/fataiadams04)

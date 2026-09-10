@@ -55,13 +55,13 @@ export default function VerifyPending() {
                 ) : (
                     <>
                         <p className="text-sm text-gray-600">
-                            Your account is being reviewed by our team. We'll send an email as
-                            soon as you're approved.
+                            Your account is awaiting email verification. Please check your inbox and
+                            follow the link to activate your account.
                         </p>
                         <p className="text-xs text-gray-400">
                             {isAuthenticated
                                 ? 'In the meantime, you can sign out and come back later.'
-                                : 'You can return to sign in once your account has been approved.'}
+                                : 'You can return to sign in once your email is verified.'}
                         </p>
                     </>
                 )}

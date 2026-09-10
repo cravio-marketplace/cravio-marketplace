@@ -9,18 +9,20 @@
  */
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, MoreVertical, Search } from 'lucide-react';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Select from '../components/common/Select';
 import Button from '../components/common/Button';
 import EmptyState from '../components/common/EmptyState';
+import ConfirmDialog from '../components/common/ConfirmDialog';
 import { fetchCategories, createCategory, deleteCategory } from '../api/menu';
 import { fetchKeywords, createKeyword, deleteKeyword } from '../api/menu';
+import { mapError } from '../api/client';
 
 export default function CategoriesView() {
     return (
-        <div className="max-w-3xl space-y-4">
+        <div className="max-w-3xl space-y-6">
             <CategoriesSection />
             <KeywordsSection />
         </div>
@@ -28,14 +30,17 @@ export default function CategoriesView() {
 }
 
 function CategoriesSection() {
-    const [items, setItems] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [menuOpenId, setMenuOpenId] = useState(null);
+    const [searchQ, setSearchQ] = useState('');
 
     const load = async () => {
         try {
             const { data } = await fetchCategories();
-            setItems(data.categories || []);
+            setCategories(data.categories || []);
         } catch {
             toast.error('Could not load categories');
         }
@@ -45,78 +50,136 @@ function CategoriesSection() {
         load();
     }, []);
 
-    const add = async (e) => {
-        e.preventDefault();
-        if (!name.trim()) return;
+    const filteredCategories = categories.filter(c =>
+        c.name.toLowerCase().includes(searchQ.toLowerCase())
+    );
+
+    const addRule = async (e) => {
+        if (e) e.preventDefault();
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+
+        // Optimistic Update
+        const tempId = crypto.randomUUID();
+        const newCat = { id: tempId, name: trimmedName, isOptimistic: true };
+        setCategories(prev => [...prev, newCat]);
+        setName('');
         setLoading(true);
+
         try {
-            await createCategory(name.trim());
-            setName('');
+            await createCategory(trimmedName);
             toast.success('Category added');
-            await load();
+            await load(); // Sync with server
         } catch (err) {
-            const msg = err?.response?.data?.error || 'Failed to add category';
-            toast.error(msg);
+            setCategories(prev => prev.filter(c => c.id !== tempId));
+            toast.error(mapError(err));
         } finally {
             setLoading(false);
         }
     };
 
-    const remove = async (id) => {
-        if (!window.confirm('Delete this category?')) return;
+    const remove = async () => {
+        if (!deletingId) return;
         try {
-            await deleteCategory(id);
+            await deleteCategory(deletingId);
             toast.success('Category removed');
+            setDeletingId(null);
             await load();
         } catch (err) {
-            toast.error(err?.response?.data?.error || 'Failed to delete category');
+            toast.error(mapError(err));
+        } finally {
+            setDeletingId(null);
         }
     };
 
     return (
-        <Card className="p-5 space-y-4">
+        <Card className="p-6 space-y-6">
             <div>
                 <h3 className="font-semibold text-gray-900">Categories</h3>
-                <p className="text-sm text-gray-500">Group your menu items — useful for filters and reports.</p>
+                <p className="text-sm text-gray-500">Manage how your menu items are grouped.</p>
             </div>
-            <form onSubmit={add} className="flex flex-col sm:flex-row gap-2">
+
+            <form onSubmit={addRule} className="flex flex-col sm:flex-row gap-2">
                 <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Swallows"
+                    onKeyDown={(e) => e.key === 'Enter' && addRule(e)}
+                    placeholder="Category name, e.g. Breakfast"
                     className="flex-1"
                 />
                 <Button type="submit" loading={loading}>
                     <Plus size={14} /> Add
                 </Button>
             </form>
-            {items.length === 0 ? (
+
+            {categories.length > 0 && (
+                <div className="relative">
+                    <Search
+                        size={16}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                        value={searchQ}
+                        onChange={(e) => setSearchQ(e.target.value)}
+                        placeholder="Search categories..."
+                        className="w-full rounded-xl border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-orange-200 focus:border-brand-orange-500"
+                    />
+                </div>
+            )}
+
+            {categories.length === 0 ? (
                 <EmptyState
                     variant="menu"
                     title="No categories yet"
-                    description="Categories help students filter your menu. Try one like 'Swallows' or 'Drinks'."
-                    action="Add category"
-                    onAction={() => document.querySelector('input[placeholder="e.g. Swallows"]')?.focus()}
+                    description="Create categories like Breakfast, Rice, Drinks or Snacks to organize your menu."
+                    action="Create first category"
+                    onAction={() => document.querySelector('input')?.focus()}
                 />
             ) : (
-                <ul className="space-y-2">
-                    {items.map((c) => (
-                        <li
+                <div className="space-y-2">
+                    {filteredCategories.map((c) => (
+                        <div
                             key={c.id}
-                            className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2"
+                            className="group flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3 hover:bg-gray-50 transition-colors"
                         >
-                            <span className="text-sm font-medium text-gray-800">{c.name}</span>
-                            <button
-                                onClick={() => remove(c.id)}
-                                aria-label={`Delete ${c.name}`}
-                                className="h-8 w-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center"
-                            >
-                                <Trash2 size={14} />
-                            </button>
-                        </li>
+                            <div className="flex items-center gap-3">
+                                <span className={`text-sm font-medium ${c.isOptimistic ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                                    {c.name}
+                                </span>
+                                {c.isOptimistic && <span className="text-[10px] text-gray-400 animate-pulse">Adding...</span>}
+                            </div>
+                            <div className="relative">
+                                <button
+                                    onClick={() => setMenuOpenId(menuOpenId === c.id ? null : c.id)}
+                                    className="p-1 text-gray-400 hover:text-gray-600 rounded-md hover:bg-gray-100"
+                                >
+                                    <MoreVertical size={16} />
+                                </button>
+                                {menuOpenId === c.id && (
+                                    <div className="absolute right-0 mt-2 w-32 bg-white border border-gray-200 rounded-lg shadow-lg z-10 py-1 animate-in fade-in slide-in-from-top-1">
+                                        <button
+                                            onClick={() => { setMenuOpenId(null); setDeletingId(c.id); }}
+                                            className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                        >
+                                            <Trash2 size={14} /> Delete
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     ))}
-                </ul>
+                </div>
             )}
+
+            <ConfirmDialog
+                open={!!deletingId}
+                title="Delete category?"
+                description={`Are you sure you want to delete this category? This will not delete the menu items, but they will become uncategorized.`}
+                confirmLabel="Delete"
+                variant="danger"
+                onCancel={() => setDeletingId(null)}
+                onConfirm={remove}
+            />
         </Card>
     );
 }
@@ -126,6 +189,7 @@ function KeywordsSection() {
     const [categories, setCategories] = useState([]);
     const [keyword, setKeyword] = useState('');
     const [categoryId, setCategoryId] = useState('');
+    const [loading, setLoading] = useState(false);
 
     const load = async () => {
         try {
@@ -142,22 +206,37 @@ function KeywordsSection() {
 
     useEffect(() => {
         load();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const add = async (e) => {
-        e.preventDefault();
+    const addRule = async (e) => {
+        if (e) e.preventDefault();
         if (!keyword || !categoryId) {
             toast.error('Pick a keyword and a category');
             return;
         }
+
+        const trimmedKw = keyword.trim();
+        const tempId = crypto.randomUUID();
+        const newRule = {
+            id: tempId,
+            keyword: trimmedKw,
+            vendor_categories: { name: categories.find(c => String(c.id) === categoryId)?.name },
+            isOptimistic: true
+        };
+
+        setRules(prev => [...prev, newRule]);
+        setKeyword('');
+        setLoading(true);
+
         try {
-            await createKeyword({ keyword, category_id: parseInt(categoryId, 10) });
-            setKeyword('');
+            await createKeyword({ keyword: trimmedKw, category_id: parseInt(categoryId, 10) });
             toast.success('Rule added');
             await load();
         } catch (err) {
-            toast.error(err?.response?.data?.error || 'Failed to add rule');
+            setRules(prev => prev.filter(r => r.id !== tempId));
+            toast.error(mapError(err));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -166,22 +245,22 @@ function KeywordsSection() {
             await deleteKeyword(id);
             await load();
         } catch (err) {
-            toast.error(err?.response?.data?.error || 'Failed to delete rule');
+            toast.error(mapError(err));
         }
     };
 
     return (
-        <Card className="p-5 space-y-4">
+        <Card className="p-6 space-y-6">
             <div>
-                <h3 className="font-semibold text-gray-900">Auto-categorisation rules</h3>
-                <p className="text-sm text-gray-500">
-                    When a new item name matches a keyword, we suggest the linked category.
-                </p>
+                <h3 className="font-semibold text-gray-900">Auto-categorisation</h3>
+                <p className="text-sm text-gray-500">Automatically suggest categories when food names match your keywords.</p>
             </div>
-            <form onSubmit={add} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
+
+            <form onSubmit={addRule} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
                 <Input
                     value={keyword}
                     onChange={(e) => setKeyword(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addRule(e)}
                     placeholder="Keyword (e.g. rice)"
                 />
                 <Select
@@ -189,32 +268,34 @@ function KeywordsSection() {
                     onChange={(e) => setCategoryId(e.target.value)}
                     options={categories.map((c) => ({ value: String(c.id), label: c.name }))}
                 />
-                <Button type="submit">
+                <Button type="submit" loading={loading}>
                     <Plus size={14} /> Add rule
                 </Button>
             </form>
+
             {rules.length === 0 ? (
                 <p className="text-sm text-gray-500">No rules yet.</p>
             ) : (
-                <ul className="space-y-2">
+                <div className="space-y-2">
                     {rules.map((r) => (
-                        <li
+                        <div
                             key={r.id}
-                            className="flex items-center justify-between rounded-xl border border-gray-100 px-3 py-2"
+                            className="flex items-center justify-between rounded-xl border border-gray-100 px-4 py-3 hover:bg-gray-50 transition-colors"
                         >
                             <div className="text-sm text-gray-800">
                                 <span className="font-medium">"{r.keyword}"</span> → {r.vendor_categories?.name || '—'}
+                                {r.isOptimistic && <span className="ml-2 text-[10px] text-gray-400 animate-pulse">Adding...</span>}
                             </div>
                             <button
                                 onClick={() => remove(r.id)}
                                 aria-label={`Delete rule for ${r.keyword}`}
-                                className="h-8 w-8 rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-500 flex items-center justify-center"
+                                className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                             >
-                                <Trash2 size={14} />
+                                <Trash2 size={16} />
                             </button>
-                        </li>
+                        </div>
                     ))}
-                </ul>
+                </div>
             )}
         </Card>
     );

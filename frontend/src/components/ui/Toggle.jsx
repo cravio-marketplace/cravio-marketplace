@@ -36,23 +36,28 @@ export default function Toggle({
         )}
       </div>
 
-      <button
-        type="button"
-        role="switch"
-        aria-checked={!!checked}
-        aria-label={label || 'Toggle'}
-        disabled={disabled}
-        onClick={() => !disabled && onChange?.(!checked)}
-        className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange-300 focus-visible:ring-offset-1 ${
-          checked ? 'bg-brand-orange-500' : 'bg-gray-300'
-        }`}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-            checked ? 'translate-x-5' : 'translate-x-0.5'
-          }`}
-        />
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={!!checked}
+          aria-label={label || 'Toggle'}
+          disabled={disabled}
+          onClick={() => !disabled && onChange?.(!checked)}
+          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-orange-300 focus-visible:ring-offset-1 ${
+            checked ? 'bg-brand-orange-500' : 'bg-gray-300'
+          } ${disabled ? 'opacity-50' : ''}`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+              checked ? 'translate-x-5' : 'translate-x-0.5'
+            }`}
+          />
+        </button>
+        <span className={`text-xs font-bold ${checked ? 'text-brand-orange-600' : 'text-gray-400'} ${disabled ? 'opacity-50' : ''}`}>
+          {checked ? 'ON' : 'OFF'}
+        </span>
+      </div>
 
       <input
         id={inputId}

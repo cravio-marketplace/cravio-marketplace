@@ -35,7 +35,7 @@ const COLUMN_DEFS = {
     },
 };
 
-export default function OrderColumn({ status, orders, onAction, onViewAll }) {
+export default function OrderColumn({ status, orders, onAction, onViewDetail, onViewAll }) {
     const def = COLUMN_DEFS[status];
     const Icon = def.icon;
     const visible = orders.slice(0, 3);
@@ -67,7 +67,8 @@ export default function OrderColumn({ status, orders, onAction, onViewAll }) {
                     {visible.map((order, idx) => (
                         <li
                             key={order.id}
-                            className={`rounded-xl border border-gray-100 p-3 transition hover:shadow-soft ${
+                            onClick={() => onViewDetail?.(order)}
+                            className={`rounded-xl border border-gray-100 p-3 transition hover:shadow-soft cursor-pointer ${
                                 status === 'pending' ? 'animate-slide-up' : ''
                             }`}
                             style={{ animationDelay: `${idx * 60}ms` }}

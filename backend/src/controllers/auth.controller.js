@@ -72,7 +72,7 @@ async function login(req, res) {
 
     if (vendor.verification_status === 'pending') {
         return res.status(403).json({
-            error: 'Account pending admin approval',
+            error: 'Your account is pending verification. Please check your email.',
             verification_status: 'pending',
         });
     }
@@ -87,6 +87,7 @@ async function login(req, res) {
     res.json({
         success: true,
         token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
         vendor,
     });
 }

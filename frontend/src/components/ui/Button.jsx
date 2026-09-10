@@ -18,15 +18,15 @@ import { Loader2 } from 'lucide-react';
  */
 const variants = {
   primary:
-    'bg-brand-orange-500 text-white hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:bg-brand-orange-300 shadow-sm',
+    'bg-brand-orange-500 text-white hover:bg-brand-orange-600 active:bg-brand-orange-700 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm',
   secondary:
-    'bg-white text-brand-orange-600 border border-brand-orange-400 hover:bg-brand-orange-50 active:bg-brand-orange-100 disabled:text-gray-400 disabled:border-gray-200 disabled:bg-white',
+    'bg-white text-brand-orange-600 border border-brand-orange-400 hover:bg-brand-orange-50 active:bg-brand-orange-100 disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200',
   ghost:
     'bg-transparent text-gray-700 border border-transparent hover:bg-gray-100 active:bg-gray-200 disabled:text-gray-400',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-red-300 shadow-sm',
+    'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 disabled:bg-gray-200 disabled:text-gray-400 shadow-sm',
   subtle:
-    'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300 disabled:text-gray-400 border border-transparent',
+    'bg-gray-100 text-gray-800 hover:bg-gray-200 active:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-400 border border-transparent',
 };
 
 const sizes = {
