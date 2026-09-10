@@ -63,8 +63,8 @@ export default function Login() {
         setLoading(true);
         try {
             await signIn({ email, password });
-            toast.success('Welcome back');
-            // Routing happens in <RequireAuth> based on verification_status.
+            toast.success('Login successful! Redirecting to your dashboard...');
+            navigate('/dashboard');
         } catch (err) {
             const status = err.response?.status;
             const data = err.response?.data;

@@ -65,7 +65,7 @@ function normalise(value) {
     // Accepts either the structured shape OR the CSV payload stored in the
     // backend, so the editor can round-trip after a save.
     const out = {};
-    const decoded = parseHoursPayload(value);
+    const decoded = typeof value === 'string' ? parseHoursPayload(value) : value;
     for (const { key } of DAYS) {
         const day = decoded?.[key];
         if (day && typeof day.open === 'string' && typeof day.close === 'string') {

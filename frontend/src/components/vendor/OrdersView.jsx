@@ -7,13 +7,17 @@
  * - While the first fetch is in flight we render a skeleton column so the
  *   layout doesn't reflow when data arrives.
  */
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import OrderColumn from './OrderColumn';
 import LoadingState from '../ui/LoadingState';
+import OrderDetailModal from './OrderDetailModal';
 import { acceptOrder, markOrderReady, completeOrder } from '../../api/orders';
 
 export default function OrdersView({ orders, refresh, loading }) {
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     const grouped = useMemo(() => {
         const g = { pending: [], accepted: [], ready: [], completed: [] };
         for (const o of orders) {
@@ -21,6 +25,11 @@ export default function OrdersView({ orders, refresh, loading }) {
         }
         return g;
     }, [orders]);
+
+    const handleViewDetail = (order) => {
+        setSelectedOrderId(order.id);
+        setIsModalOpen(true);
+    };
 
     const onAction = async (order) => {
         try {
@@ -47,18 +56,31 @@ export default function OrdersView({ orders, refresh, loading }) {
     }
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-            {Object.entries(grouped).map(([status, list]) => (
-                <OrderColumn
-                    key={status}
-                    status={status}
-                    orders={list}
-                    onAction={onAction}
-                    onViewAll={() => {
-                        toast(`Showing first ${list.length} ${status} orders`);
-                    }}
-                />
-            ))}
+        <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                {Object.entries(grouped).map(([status, list]) => (
+                    <OrderColumn
+                        key={status}
+                        status={status}
+                        orders={list}
+                        onAction={onAction}
+                        onViewDetail={handleViewDetail}
+                        onViewAll={() => {
+                            toast(`Showing first ${list.length} ${status} orders`);
+                        }}
+                    />
+                ))}
+            </div>
+
+            <OrderDetailModal
+                open={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setSelectedOrderId(null);
+                }}
+                orderId={selectedOrderId}
+                refresh={refresh}
+            />
         </div>
     );
 }

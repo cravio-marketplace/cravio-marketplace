@@ -42,7 +42,8 @@ const verifyVendor = async (req, res, next) => {
         return res.status(403).json({ error: 'Not a registered vendor' });
     }
 
-    if (vendor.verification_status !== 'open' && vendor.verification_status !== 'approved') {
+    // Verify account is approved/accepted
+    if (vendor.verification_status !== 'accepted') {
         return res.status(403).json({
             error: `Account not active (${vendor.verification_status})`,
             verification_status: vendor.verification_status,

@@ -34,7 +34,7 @@ function RequireAuth({ children }) {
     if (status === 'pending' || status === 'rejected') {
         return <Navigate to="/pending" replace />;
     }
-    if (status !== 'open' && status !== 'approved') {
+    if (status !== 'accepted') {
         return <Navigate to="/login" replace />;
     }
     return children;
@@ -49,7 +49,7 @@ function RedirectIfAuthed({ children }) {
     if (!isAuthenticated) return children;
     const status = vendor?.verification_status;
     if (status === 'pending' || status === 'rejected') return <Navigate to="/pending" replace />;
-    if (status === 'open' || status === 'approved') return <Navigate to="/dashboard" replace />;
+    if (status === 'accepted') return <Navigate to="/dashboard" replace />;
     return children;
 }
 

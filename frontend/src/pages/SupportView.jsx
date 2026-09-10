@@ -56,8 +56,8 @@ export default function SupportView() {
             setForm({ subject: '', message: '', category: 'Technical Issue' });
             setShowForm(false);
             load();
-        } catch {
-            toast.error('Failed to submit');
+        } catch (err) {
+            toast.error(err?.response?.data?.error || 'Failed to submit ticket');
         } finally {
             setSubmitting(false);
         }

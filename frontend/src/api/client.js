@@ -34,6 +34,36 @@ API.interceptors.request.use((config) => {
 const NETWORK_ERROR_MESSAGE =
     'Cannot reach the server. Check your connection and try again.';
 
+/**
+ * Translate technical API errors into human-friendly messages.
+ */
+export const mapError = (error) => {
+    const status = error?.response?.status;
+    const data = error?.response?.data;
+    const msg = data?.error || error?.message;
+
+    if (error.isNetworkError) return NETWORK_ERROR_MESSAGE;
+
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        return 'The server took too long to respond. Please check your connection and try again.';
+    }
+
+    if (status === 409) {
+        if (msg?.toLowerCase().includes('category')) return 'A category with this name already exists. Please try another.';
+        return 'This item already exists.';
+    }
+
+    if (status === 403) {
+        return data?.verification_status === 'pending'
+            ? 'Your account is pending admin approval.'
+            : 'You do not have permission to perform this action.';
+    }
+
+    if (status === 401) return 'Your session has expired. Please sign in again.';
+
+    return msg || 'An unexpected error occurred. Please try again.';
+};
+
 API.interceptors.response.use(
     (response) => response,
     (error) => {
