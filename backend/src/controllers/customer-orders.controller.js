@@ -78,7 +78,11 @@ async function create(req, res, next) {
             if (!Number.isSafeInteger(itemId) || itemId <= 0 || !Number.isSafeInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY_PER_LINE) {
                 return res.status(400).json({ error: 'One or more cart items are invalid.' });
             }
-            quantities.set(itemId, (quantities.get(itemId) || 0) + quantity);
+            const combinedQuantity = (quantities.get(itemId) || 0) + quantity;
+            if (combinedQuantity > MAX_QUANTITY_PER_LINE) {
+                return res.status(400).json({ error: 'The quantity for an item cannot exceed 20.' });
+            }
+            quantities.set(itemId, combinedQuantity);
         }
 
         const ids = [...quantities.keys()];
@@ -114,7 +118,7 @@ async function create(req, res, next) {
                 price: unitPrice,
             });
         }
-        if (!Number.isSafeInteger(total) || total <= 0) {
+        if (!Number.isSafeInteger(total) || total < 0) {
             return res.status(400).json({ error: 'The order total is invalid.' });
         }
 
