@@ -10,6 +10,7 @@
  */
 import { useCallback, useEffect, useState } from 'react';
 import * as menuApi from '../api/menu';
+import supabase from '../api/supabaseClient';
 
 export function useMenu() {
     const [menu, setMenu] = useState([]);
@@ -30,6 +31,13 @@ export function useMenu() {
 
     useEffect(() => {
         refresh();
+        const channel = supabase
+            .channel('vendor-live-menu')
+            .on('postgres_changes', {
+                event: '*', schema: 'public', table: 'menu_items',
+            }, () => refresh())
+            .subscribe();
+        return () => { supabase.removeChannel(channel); };
     }, [refresh]);
 
     const create = async (payload) => {
