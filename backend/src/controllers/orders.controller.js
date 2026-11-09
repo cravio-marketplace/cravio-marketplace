@@ -4,17 +4,13 @@
  * Order lifecycle:
  *   pending → accepted → ready → completed
  *
- * `ready` mints a 4-digit pickup code that the student reads back to the
- * vendor. `complete` validates the code, flips status, and (via the stock
- * service) auto-decrements inventory.
+ * Completion is guarded by a conditional database update so concurrent/retried
+ * pickup requests cannot decrement stock more than once.
  */
+const { randomInt } = require('node:crypto');
 const supabase = require('../config/supabase');
 const { decrementStockForOrder } = require('../services/stock');
 
-/**
- * GET /api/orders
- * Optional query: ?status=pending&from=2026-07-01&to=2026-07-25
- */
 async function list(req, res) {
     let query = supabase
         .from('orders')
@@ -31,9 +27,6 @@ async function list(req, res) {
     res.json({ success: true, orders: data });
 }
 
-/**
- * GET /api/orders/:orderId
- */
 async function getOne(req, res) {
     const { data, error } = await supabase
         .from('orders')
@@ -47,6 +40,7 @@ async function getOne(req, res) {
 
 /**
  * POST /api/orders/:orderId/accept
+ * Only pending orders may be accepted.
  */
 async function accept(req, res) {
     const { data, error } = await supabase
@@ -54,26 +48,32 @@ async function accept(req, res) {
         .update({ status: 'accepted' })
         .eq('id', req.params.orderId)
         .eq('vendor_id', req.vendor.id)
+        .eq('status', 'pending')
         .select()
-        .single();
+        .maybeSingle();
+
     if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(409).json({ error: 'Only pending orders can be accepted.' });
     res.json({ success: true, order: data });
 }
 
 /**
  * POST /api/orders/:orderId/ready
- * Mints a 4-digit pickup code.
+ * Only accepted orders may be marked ready.
  */
 async function ready(req, res) {
-    const pickupCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const pickupCode = String(randomInt(1000, 10000));
     const { data, error } = await supabase
         .from('orders')
         .update({ status: 'ready', pickup_code: pickupCode })
         .eq('id', req.params.orderId)
         .eq('vendor_id', req.vendor.id)
+        .eq('status', 'accepted')
         .select()
-        .single();
+        .maybeSingle();
+
     if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(409).json({ error: 'Only accepted orders can be marked ready.' });
     res.json({ success: true, code: pickupCode, order: data });
 }
 
@@ -81,44 +81,64 @@ async function ready(req, res) {
  * POST /api/orders/:orderId/complete
  * Body: { code }
  *
- * Validates the pickup code, marks the order completed, and decrements
- * stock. Returns `low_stock` so the client can show a toast.
+ * The status + pickup-code predicate makes completion a single-winner
+ * operation. Stock is decremented only after that conditional update succeeds.
  */
 async function complete(req, res) {
-    const { code } = req.body;
+    const code = typeof req.body?.code === 'string' ? req.body.code.trim() : '';
+    if (!/^\d{4}$/.test(code)) {
+        return res.status(400).json({ error: 'Enter the 4-digit pickup code.' });
+    }
+
     const { data: order, error: fetchErr } = await supabase
         .from('orders')
-        .select('*')
+        .select('id,items,status,pickup_code')
         .eq('id', req.params.orderId)
         .eq('vendor_id', req.vendor.id)
-        .single();
-    if (fetchErr || !order) return res.status(404).json({ error: 'Order not found' });
-    if (!code || order.pickup_code !== code) {
+        .maybeSingle();
+
+    if (fetchErr) return res.status(500).json({ error: fetchErr.message });
+    if (!order) return res.status(404).json({ error: 'Order not found' });
+    if (order.status !== 'ready') {
+        return res.status(409).json({ error: 'Only ready orders can be completed.' });
+    }
+    if (order.pickup_code !== code) {
         return res.status(400).json({ error: 'Invalid pickup code' });
     }
 
+    // Atomic compare-and-set: only one request can move ready → completed.
     const { data, error } = await supabase
         .from('orders')
         .update({ status: 'completed' })
         .eq('id', order.id)
+        .eq('vendor_id', req.vendor.id)
+        .eq('status', 'ready')
+        .eq('pickup_code', code)
         .select()
-        .single();
+        .maybeSingle();
+
     if (error) return res.status(500).json({ error: error.message });
+    if (!data) return res.status(409).json({ error: 'This order has already been completed or changed.' });
 
-    const lowStockFlags = await decrementStockForOrder(supabase, req.vendor.id, order.items, 'order_completed');
-
-    res.json({
-        success: true,
-        order: data,
-        low_stock: lowStockFlags.length > 0,
-        low_stock_items: lowStockFlags,
-    });
+    try {
+        const lowStockFlags = await decrementStockForOrder(supabase, req.vendor.id, order.items, 'order_completed');
+        return res.json({
+            success: true,
+            order: data,
+            low_stock: lowStockFlags.length > 0,
+            low_stock_items: lowStockFlags,
+        });
+    } catch (stockError) {
+        // The order is completed already; expose a clear operational error
+        // instead of allowing a retry to decrement inventory a second time.
+        console.error('Stock decrement failed after order completion:', stockError);
+        return res.status(500).json({
+            error: 'Order completed, but inventory could not be updated. Contact support before retrying.',
+            order_completed: true,
+        });
+    }
 }
 
-/**
- * GET /api/orders/export.csv
- * Streams the vendor's orders as a CSV download.
- */
 async function exportCsv(req, res) {
     const { data, error } = await supabase
         .from('orders')
