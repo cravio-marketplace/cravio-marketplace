@@ -9,7 +9,6 @@
  */
 const { randomInt } = require('node:crypto');
 const supabase = require('../config/supabase');
-const { decrementStockForOrder } = require('../services/stock');
 
 async function list(req, res) {
     let query = supabase
@@ -120,23 +119,9 @@ async function complete(req, res) {
     if (error) return res.status(500).json({ error: error.message });
     if (!data) return res.status(409).json({ error: 'This order has already been completed or changed.' });
 
-    try {
-        const lowStockFlags = await decrementStockForOrder(supabase, req.vendor.id, order.items, 'order_completed');
-        return res.json({
-            success: true,
-            order: data,
-            low_stock: lowStockFlags.length > 0,
-            low_stock_items: lowStockFlags,
-        });
-    } catch (stockError) {
-        // The order is completed already; expose a clear operational error
-        // instead of allowing a retry to decrement inventory a second time.
-        console.error('Stock decrement failed after order completion:', stockError);
-        return res.status(500).json({
-            error: 'Order completed, but inventory could not be updated. Contact support before retrying.',
-            order_completed: true,
-        });
-    }
+    // Inventory was reserved atomically when checkout created this order.
+    // Do not decrement again at pickup completion.
+    return res.json({ success: true, order: data, low_stock: false, low_stock_items: [] });
 }
 
 async function exportCsv(req, res) {
