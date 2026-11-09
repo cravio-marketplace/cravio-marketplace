@@ -15,6 +15,7 @@ const { errorHandler } = require('./middleware/errorHandler');
 const authRoutes = require('./routes/auth');
 const vendorRoutes = require('./routes/vendor');
 const ordersRoutes = require('./routes/orders');
+const customerOrdersRoutes = require('./routes/customer-orders');
 const menuRoutes = require('./routes/menu');
 const categoriesRoutes = require('./routes/categories');
 const keywordsRoutes = require('./routes/keywords');
@@ -52,6 +53,7 @@ app.use((req, _res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/customer/orders', customerOrdersRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/vendor/categories', categoriesRoutes);
 app.use('/api/vendor/keywords', keywordsRoutes);
