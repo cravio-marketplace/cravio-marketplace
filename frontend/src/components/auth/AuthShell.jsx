@@ -21,10 +21,7 @@ export default function AuthShell({ title, subtitle, children, maxWidth = 'max-w
             <div className="flex-1 flex flex-col p-6 sm:p-10">
                 <div className={`w-full ${maxWidth} mx-auto flex flex-col flex-1 min-h-0`}>
                     <div className="lg:hidden flex items-center gap-2.5 mb-8">
-                        <div className="w-9 h-9 rounded-xl bg-brand-orange-500 text-white flex items-center justify-center font-bold">
-                            C
-                        </div>
-                        <span className="text-xl font-semibold text-gray-900">Cravio</span>
+                        <img src="/brand/logo-primary.png" alt="Cravio" className="h-8 w-auto max-w-[160px] object-contain" />
                     </div>
 
                     <div>
