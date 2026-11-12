@@ -52,7 +52,7 @@ export default function Sidebar({ activeView, setActiveView }) {
             {/* Desktop rail */}
             <aside className="hidden md:flex w-64 flex-col border-r border-gray-100 bg-white">
                 <div className="px-6 py-5 border-b border-gray-100">
-                    <p className="text-xl font-bold text-brand-orange-500">Cravio</p>
+                    <img src="/brand/logo-primary.png" alt="Cravio" className="h-8 w-auto max-w-[172px] object-contain object-left" />
                     <p className="text-xs text-gray-400 mt-0.5">Vendor dashboard</p>
                 </div>
                 <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
