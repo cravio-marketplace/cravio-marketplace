@@ -1,0 +1,7 @@
+/* Cravio brand motion: restrained and accessible. */
+.cravio-loader{display:inline-flex;align-items:center;justify-content:center}
+.cravio-loader-mark{display:block;object-fit:contain;animation:cravio-roll 1.15s cubic-bezier(.45,.05,.55,.95) infinite}
+.cravio-loader-screen{min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#dfffd6}
+.cravio-loader-label{font:600 13px Inter,system-ui;letter-spacing:.02em;color:#1f1f1f}
+@keyframes cravio-roll{0%{transform:rotate(-12deg) scale(.94)}50%{transform:rotate(180deg) scale(1.04)}100%{transform:rotate(348deg) scale(.94)}}
+@media(prefers-reduced-motion:reduce){.cravio-loader-mark{animation:none}}
