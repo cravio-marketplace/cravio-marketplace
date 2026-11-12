@@ -13,10 +13,7 @@ export default function BrandPanel() {
 
             <div className="relative">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center font-bold text-lg">
-                        C
-                    </div>
-                    <span className="text-2xl font-semibold tracking-tight">Cravio</span>
+                    <img src="/brand/logo-primary.png" alt="Cravio" className="h-10 w-auto max-w-[220px] brightness-0 invert object-contain object-left" />
                 </div>
             </div>
 
