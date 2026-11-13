@@ -1,10 +1,9 @@
 /**
  * Supabase client configuration.
  *
- * The service-role client is server-only and is used for trusted database
- * operations. The separate auth client handles password/OTP flows so a
- * customer's or vendor's sign-in session can never replace the service-role
- * Authorization header on the shared database client.
+ * Database operations use the server-only service-role client. Password and
+ * OTP flows use a separate client so user sessions never replace the
+ * service-role Authorization header on the shared database client.
  */
 const { createClient } = require('@supabase/supabase-js');
 
@@ -16,17 +15,10 @@ const supabaseAnonKey =
     supabaseServiceKey;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn(
-        '[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. ' +
-            'Set them in backend/.env / Render environment.'
-    );
+    console.warn('[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
 }
-
 if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_PUBLISHABLE_KEY) {
-    console.warn(
-        '[supabase] SUPABASE_ANON_KEY is not set. Auth is using an isolated ' +
-            'service-key client as a temporary fallback. Set the anon/publishable key.'
-    );
+    console.warn('[supabase] SUPABASE_ANON_KEY is not set; isolated auth client is using the service key fallback. Configure the anon/publishable key.');
 }
 
 const authOptions = {
@@ -40,8 +32,8 @@ const authOptions = {
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, authOptions);
 const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, authOptions);
 
-// Preserve the existing default export: all existing DB/controller imports
-// continue to use the service-role client.
+// Keep the default export compatible with all existing database controllers.
+// Do not use the property name "authClient" on the SDK's own "auth" property.
 module.exports = supabaseAdmin;
-module.exports.admin = supabaseAdmin;
-module.exports.auth = supabaseAuth;
+module.exports.adminClient = supabaseAdmin;
+module.exports.authClient = supabaseAuth;
