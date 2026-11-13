@@ -1,9 +1,5 @@
 /**
  * Cravio API entry point.
- *
- * Bootstraps Express, wires up the route modules, and exposes a couple of
- * health checks. Anything that talks to Supabase lives in controllers /
- * services; this file just glues them together.
  */
 require('dotenv').config();
 
@@ -25,31 +21,48 @@ const supportRoutes = require('./routes/support');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// CORS: allow the Vercel frontend in prod, localhost in dev.
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:3000')
-    .split(',')
-    .map((s) => s.trim());
-app.use(
-    cors({
-        origin: (origin, cb) => {
-            if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-                return cb(null, true);
-            }
-            return cb(new Error(`CORS: origin ${origin} not allowed`));
-        },
-        credentials: true,
-    })
-);
+const defaultAllowedOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://cravio-marketplace-opal.vercel.app',
+    'https://cravio-marketplace-git-main-cravio-marketplace.vercel.app',
+    'https://cravio-marketplace-3i3xw7oan-cravio-marketplace.vercel.app',
+];
 
+const configuredOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map((origin) => origin.trim().replace(/\/+$/, ''))
+    .filter(Boolean);
+
+const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins]);
+const isCravioVercelOrigin = (origin) =>
+    /^https:\/\/cravio-marketplace(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.has(origin) || isCravioVercelOrigin(origin)) {
+            return callback(null, true);
+        }
+        console.warn('[CORS] Blocked origin:', origin);
+        return callback(new Error('Origin is not allowed by Cravio API CORS policy'));
+    },
+    credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    maxAge: 86400,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 
-// Make the Supabase client available on every request for convenience.
+// Keep the trusted service-role client available to server-side handlers.
 app.use((req, _res, next) => {
     req.supabase = supabase;
     next();
 });
 
-// --- API routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/vendor', vendorRoutes);
 app.use('/api/orders', ordersRoutes);
@@ -60,18 +73,19 @@ app.use('/api/vendor/keywords', keywordsRoutes);
 app.use('/api/vendor/featured', featuredRoutes);
 app.use('/api/support', supportRoutes);
 
-// --- Health & root ---
-app.get('/', (_req, res) => res.json({ message: 'Cravio API running', version: '2.0' }));
+app.get('/', (_req, res) => res.json({ message: 'Cravio API running', version: '2.1' }));
 app.get('/health', async (_req, res) => {
     const { error } = await supabase.from('vendors').select('id', { count: 'exact', head: true });
-    res.json({ status: 'healthy', supabase: error ? 'error' : 'connected' });
+    res.status(error ? 503 : 200).json({
+        status: error ? 'degraded' : 'healthy',
+        supabase: error ? 'error' : 'connected',
+    });
 });
 
-// 404 + error handler last.
 app.use((req, res) => res.status(404).json({ error: `Route ${req.method} ${req.originalUrl} not found` }));
 app.use(errorHandler);
 
 app.listen(PORT, () => {
-    // eslint-disable-next-line no-console
-    console.log(`🚀 Cravio backend running on http://localhost:${PORT}`);
+    console.log(`Cravio backend running on port ${PORT}`);
+    console.log('[CORS] Allowed origins:', [...allowedOrigins].join(', '));
 });

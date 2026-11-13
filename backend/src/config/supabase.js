@@ -1,27 +1,39 @@
 /**
  * Supabase client configuration.
  *
- * We use the SERVICE_ROLE key on the backend so we can bypass Row Level Security
- * for trusted server-to-server work. The service role key MUST never be exposed
- * to the browser. All vendor authentication is done through Supabase Auth.
+ * Database operations use the server-only service-role client. Password and
+ * OTP flows use a separate client so user sessions never replace the
+ * service-role Authorization header on the shared database client.
  */
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey =
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_PUBLISHABLE_KEY ||
+    supabaseServiceKey;
 
 if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn(
-        '[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY. ' +
-            'Set them in backend/.env before starting the server.'
-    );
+    console.warn('[supabase] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.');
+}
+if (!process.env.SUPABASE_ANON_KEY && !process.env.SUPABASE_PUBLISHABLE_KEY) {
+    console.warn('[supabase] SUPABASE_ANON_KEY is not set; isolated auth client is using the service key fallback. Configure the anon/publishable key.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+const authOptions = {
     auth: {
         autoRefreshToken: false,
         persistSession: false,
+        detectSessionInUrl: false,
     },
-});
+};
 
-module.exports = supabase;
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, authOptions);
+const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, authOptions);
+
+// Keep the default export compatible with all existing database controllers.
+// Do not use the property name "authClient" on the SDK's own "auth" property.
+module.exports = supabaseAdmin;
+module.exports.adminClient = supabaseAdmin;
+module.exports.authClient = supabaseAuth;

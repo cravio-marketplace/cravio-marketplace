@@ -1,11 +1,16 @@
-﻿/**
+/**
  * Shared Axios client for all vendor API requests.
+ *
+ * Local Vite development always targets the local Express server. Production
+ * uses VITE_API_URL when configured, otherwise the Render API.
  */
 import axios from 'axios';
 
-const baseURL =
-    import.meta.env.VITE_API_URL ||
-    'https://cravio-marketplace-jwlq.onrender.com/api';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+const baseURL = import.meta.env.DEV
+    ? 'http://localhost:5000/api'
+    : configuredApiUrl || 'https://cravio-marketplace-jwlq.onrender.com/api';
 
 const API = axios.create({
     baseURL,
@@ -36,17 +41,15 @@ export const mapError = (error) => {
         if (msg?.toLowerCase().includes('category')) {
             return 'A category with this name already exists. Please try another.';
         }
-        return 'This item already exists.';
+        return msg || 'This item already exists.';
     }
 
     if (status === 403) {
-        return data?.verification_status === 'pending'
-            ? 'Your account is pending admin approval.'
-            : 'You do not have permission to perform this action.';
+        if (data?.verification_status === 'pending') return 'Your account is pending admin approval.';
+        return msg || 'You do not have permission to perform this action.';
     }
 
-    if (status === 401) return 'Your session has expired. Please sign in again.';
-
+    if (status === 401) return msg || 'Your session has expired. Please sign in again.';
     return msg || 'An unexpected error occurred. Please try again.';
 };
 
@@ -63,7 +66,6 @@ API.interceptors.response.use(
             error.friendlyMessage = NETWORK_ERROR_MESSAGE;
             error.isNetworkError = true;
         }
-
         return Promise.reject(error);
     }
 );
