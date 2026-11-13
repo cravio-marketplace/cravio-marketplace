@@ -1,7 +1,7 @@
 /**
  * OTP controller — email or phone one-time-password verification.
  */
-const supabaseAuth = require('../config/supabase').auth;
+const supabaseAuth = require('../config/supabase').authClient;
 const { toE164 } = require('../services/phone');
 const { scoreSignup, flagIfSuspicious } = require('../services/risk');
 
