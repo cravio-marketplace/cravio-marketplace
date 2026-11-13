@@ -17,6 +17,7 @@ import SignUp from './pages/SignUp';
 import VerifyPending from './pages/VerifyPending';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
+import EmailConfirmed from './pages/EmailConfirmed';
 import Dashboard from './pages/Dashboard/Dashboard';
 
 /**
@@ -75,6 +76,7 @@ function Shell() {
                 />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/email-confirmed" element={<EmailConfirmed />} />
 
             {/* Pending / rejected — authed vendors only */}
             <Route
