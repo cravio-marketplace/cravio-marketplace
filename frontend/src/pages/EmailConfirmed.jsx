@@ -16,7 +16,22 @@ export default function EmailConfirmed() {
         }
 
         const checkSession = async () => {
-            // Supabase JS processes the confirmation callback from the URL on load.
+            // The backend initiates signup, so the PKCE verifier is not stored
+            // in this browser. Verify Supabase's email token_hash directly.
+            const tokenHash = searchParams.get('token_hash');
+            const type = searchParams.get('type');
+            if (tokenHash && type === 'signup') {
+                const { data, error } = await supabase.auth.verifyOtp({
+                    token_hash: tokenHash,
+                    type: 'signup',
+                });
+                if (!active) return;
+                if (error) setStatus('error');
+                else if (data?.user?.email_confirmed_at || data?.session?.user?.email_confirmed_at) setStatus('success');
+                else setStatus('error');
+                return;
+            }
+
             const { data, error } = await supabase.auth.getSession();
             if (!active) return;
             if (error) setStatus('error');
