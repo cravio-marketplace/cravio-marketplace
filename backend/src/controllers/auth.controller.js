@@ -6,7 +6,7 @@
  * the service-role token used by database operations.
  */
 const supabase = require('../config/supabase');
-const supabaseAuth = supabase.auth;
+const supabaseAuth = supabase.authClient;
 const { sendAdminNotification } = require('../services/notifications');
 const { scoreSignup, flagIfSuspicious } = require('../services/risk');
 const { toE164 } = require('../services/phone');
