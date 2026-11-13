@@ -2,7 +2,7 @@
  * Vendor controller — profile, status, password.
  */
 const supabase = require('../config/supabase');
-const supabaseAuth = supabase.auth;
+const supabaseAuth = supabase.authClient;
 const { listLowStock } = require('../services/stock');
 
 async function getMe(req, res) {
