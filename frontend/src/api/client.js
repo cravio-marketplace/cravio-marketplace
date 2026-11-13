@@ -1,11 +1,19 @@
-﻿/**
+/**
  * Shared Axios client for all vendor API requests.
+ *
+ * VITE_API_URL can override the API origin per environment. Without an
+ * override, Vite development uses the local Express API and production uses
+ * the deployed Render API.
  */
 import axios from 'axios';
 
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+
 const baseURL =
-    import.meta.env.VITE_API_URL ||
-    'https://cravio-marketplace-jwlq.onrender.com/api';
+    configuredApiUrl ||
+    (import.meta.env.DEV
+        ? 'http://localhost:5000/api'
+        : 'https://cravio-marketplace-jwlq.onrender.com/api');
 
 const API = axios.create({
     baseURL,
