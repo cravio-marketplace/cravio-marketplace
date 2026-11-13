@@ -12,6 +12,8 @@ import Input from '../common/Input';
 import Badge from '../common/Badge';
 import EmptyState from '../common/EmptyState';
 import { formatNaira, formatDate } from '../../utils/formatters';
+import API from '../../api/client';
+
 
 const STATUS_OPTIONS = [
     { value: '', label: 'All statuses' },
@@ -51,23 +53,23 @@ export default function OrderHistory() {
         }
     };
 
-    const exportCsv = () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-        const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
-        const url = `${base}/orders/export.csv`;
-        // Open in a new tab — browser will attach the header only if we use
-        // fetch + blob, so we use a server-friendly trick: hit the API with
-        // the bearer token via a hidden link.
-        fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-            .then((r) => r.blob())
-            .then((blob) => {
-                const a = document.createElement('a');
-                a.href = URL.createObjectURL(blob);
-                a.download = `orders-${Date.now()}.csv`;
-                a.click();
-            })
-            .catch(() => toast.error('Export failed'));
+    const exportCsv = async () => {
+        try {
+            const { data: blob } = await API.get('/orders/export.csv', {
+                responseType: 'blob',
+            });
+
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+
+            a.href = url;
+            a.download = `orders-${Date.now()}.csv`;
+            a.click();
+
+            URL.revokeObjectURL(url);
+        } catch {
+            toast.error('Export failed');
+        }
     };
 
     return (
