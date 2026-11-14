@@ -9,16 +9,15 @@
  * On save the parent gets a payload ready for POST/PUT /api/menu.
  */
 import { useState } from 'react';
-import { Plus, Trash2, Upload, X } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import { uploadMenuImage } from '../../api/uploads';
-import { createCategory } from '../../api/menu';
 import { mapError } from '../../api/client';
-import { MEAL_TIME_OPTIONS } from '../../utils/constants';
+import { MEAL_TIME_OPTIONS, FOOD_CATEGORIES } from '../../utils/constants';
 
 export default function EditItemModal({ item, categories = [], onClose, onSave }) {
     const [form, setForm] = useState({
@@ -30,30 +29,11 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
         low_stock_threshold: item?.low_stock_threshold ?? 5,
         meal_time: item?.meal_time || [],
         image_url: item?.image_url || '',
-        variations: item?.variations || [],
     });
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
 
     const set = (patch) => setForm((f) => ({ ...f, ...patch }));
-
-    const handleCreateCategory = async (e) => {
-        if (e) e.preventDefault();
-        const name = newCategoryName.trim();
-        if (!name) return;
-
-        try {
-            await createCategory(name);
-            set({ category: name });
-            setIsCreatingCategory(false);
-            setNewCategoryName('');
-            toast.success('Category created');
-        } catch (err) {
-            toast.error(mapError(err));
-        }
-    };
 
     const toggleMeal = (id) =>
         set({
@@ -78,21 +58,6 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
 
     const clearImage = () => set({ image_url: '' });
 
-    const addVariation = () =>
-        set({
-            variations: [
-                ...form.variations,
-                { name: '', price: '', quantity: '', available: true, isNew: true },
-            ],
-        });
-    const updateVariation = (idx, key, value) => {
-        const v = [...form.variations];
-        v[idx] = { ...v[idx], [key]: value };
-        set({ variations: v });
-    };
-    const removeVariation = (idx) =>
-        set({ variations: form.variations.filter((_, i) => i !== idx) });
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!form.name || !form.price) {
@@ -110,14 +75,6 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                 low_stock_threshold: parseInt(form.low_stock_threshold, 10) || 5,
                 meal_time: form.meal_time,
                 image_url: form.image_url || null,
-                variations: form.variations
-                    .filter((v) => v.name && v.price)
-                    .map((v) => ({
-                        name: v.name,
-                        price: Math.round(parseFloat(v.price) * 100),
-                        quantity: v.quantity === '' ? null : parseInt(v.quantity, 10),
-                        available: v.available !== false,
-                    })),
             };
             await onSave(payload);
             onClose?.();
@@ -203,46 +160,15 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {isCreatingCategory ? (
-                        <div className="flex flex-col gap-1.5">
-                            <label className="block text-sm font-medium text-gray-700">New Category</label>
-                            <div className="flex gap-2">
-                                <Input
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    placeholder="e.g. Desserts"
-                                    autoFocus
-                                />
-                                <Button onClick={handleCreateCategory} size="sm" loading={loading}>
-                                    Create
-                                </Button>
-                                <Button variant="ghost" onClick={() => setIsCreatingCategory(false)} size="sm">
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-1.5">
-                            <Select
-                                label="Category"
-                                value={form.category}
-                                onChange={(e) => set({ category: e.target.value })}
-                                options={[
-                                    { value: '', label: 'Uncategorized' },
-                                    ...categories.map((c) => ({ value: c.name, label: c.name })),
-                                    { value: 'CREATE_NEW', label: '+ Create new category', className: 'text-brand-orange-600 font-medium' },
-                                ]}
-                                // We need to handle the 'CREATE_NEW' value specifically
-                                onSelect={(val) => {
-                                    if (val === 'CREATE_NEW') {
-                                        setIsCreatingCategory(true);
-                                    } else {
-                                        set({ category: val });
-                                    }
-                                }}
-                            />
-                        </div>
-                    )}
+                    <Select
+                        label="Category"
+                        value={form.category}
+                        onChange={(e) => set({ category: e.target.value })}
+                        options={[
+                            { value: '', label: 'Choose category' },
+                            ...FOOD_CATEGORIES.map((name) => ({ value: name, label: name })),
+                        ]}
+                    />
                     <Input
                         label="Low-stock alert at"
                         type="number"
@@ -295,63 +221,6 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                     </div>
                 </div>
 
-                <div>
-                    <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Variations</p>
-                        <button
-                            type="button"
-                            onClick={addVariation}
-                            className="text-sm text-brand-orange-600 flex items-center gap-1 hover:text-brand-orange-700"
-                        >
-                            <Plus size={14} /> Add variation
-                        </button>
-                    </div>
-                    {form.variations.length > 0 && (
-                        <div className="space-y-2">
-                            {form.variations.map((v, idx) => (
-                                <div
-                                    key={idx}
-                                    className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-2 rounded-xl"
-                                >
-                                    <input
-                                        value={v.name}
-                                        onChange={(e) =>
-                                            updateVariation(idx, 'name', e.target.value)
-                                        }
-                                        placeholder="Small"
-                                        className="col-span-4 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
-                                    />
-                                    <input
-                                        value={v.price}
-                                        onChange={(e) =>
-                                            updateVariation(idx, 'price', e.target.value)
-                                        }
-                                        placeholder="₦"
-                                        type="number"
-                                        className="col-span-3 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
-                                    />
-                                    <input
-                                        value={v.quantity}
-                                        onChange={(e) =>
-                                            updateVariation(idx, 'quantity', e.target.value)
-                                        }
-                                        placeholder="Stock"
-                                        type="number"
-                                        className="col-span-3 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeVariation(idx)}
-                                        aria-label="Remove variation"
-                                        className="col-span-2 h-9 w-9 mx-auto text-red-500 hover:bg-red-50 rounded-lg flex items-center justify-center"
-                                    >
-                                        <Trash2 size={14} />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
             </form>
         </Modal>
     );
