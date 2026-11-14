@@ -329,12 +329,13 @@ BEGIN
   INSERT INTO public.orders(
     vendor_id, customer_id, client_order_id, student_name, student_phone,
     pickup_point, pickup_instructions, items, subtotal_price, service_fee,
-    commission_amount, total_price, payment_method, payment_status, status
+    commission_amount, total_price, payment_method, payment_status, status, settlement_due_at
   )
   VALUES (
     p_vendor_id, p_customer_id, p_client_order_id, p_student_name, p_student_phone,
     p_pickup_point, NULLIF(p_pickup_instructions, ''), v_order_items, v_subtotal,
-    v_service_fee, v_commission, v_total, 'cash', 'unpaid', 'pending'
+    v_service_fee, v_commission, v_total, 'cash', 'unpaid', 'pending',
+    now() + make_interval(days => p_settlement_due_days)
   )
   RETURNING * INTO v_order;
 
