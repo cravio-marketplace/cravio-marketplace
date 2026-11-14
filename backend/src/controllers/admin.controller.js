@@ -181,8 +181,45 @@ async function createVendorSettlement(req, res, next) {
     }
 }
 
-module.exports = {
-    resetVendorActivation,
-    getVendorSettlementSummary,
-    createVendorSettlement,
-};
+
+
+async function writeAudit(req, action, resourceType, resourceId, oldValue, newValue, reason=null) {
+  const { error } = await supabase.from('admin_audit_logs').insert({
+    actor_user_id:req.admin.id, actor_role:req.admin.profile.role, action,
+    resource_type:resourceType, resource_id:resourceId==null?null:String(resourceId),
+    old_value:oldValue??null,new_value:newValue??null,reason,
+    request_id:req.headers['x-request-id']||null
+  });
+  if(error) throw error;
+}
+async function getDashboard(req,res,next){
+ try{
+  const range=String(req.query.range||'30d');const now=new Date();const start=new Date(now);
+  if(range==='today')start.setHours(0,0,0,0);else if(range==='7d')start.setDate(start.getDate()-7);else if(range==='30d')start.setDate(start.getDate()-30);else if(range==='90d')start.setDate(start.getDate()-90);else return res.status(400).json({error:'range must be today, 7d, 30d or 90d'});
+  const [orders,vendors,customers,pending,cashOrders]=await Promise.all([
+   supabase.from('orders').select('id,vendor_id,customer_id,total_price,subtotal_price,service_fee,commission_amount,status,payment_method,created_at,completed_at,settlement_due_at').gte('created_at',start.toISOString()),
+   supabase.from('vendors').select('id,business_name,verification_status,admin_suspended,created_at'),
+   supabase.from('orders').select('customer_id').gte('created_at',start.toISOString()).not('customer_id','is',null),
+   supabase.from('vendors').select('id',{count:'exact',head:true}).eq('verification_status','pending'),
+   supabase.from('orders').select('id,service_fee,commission_amount,completed_at,settlement_due_at').eq('payment_method','cash').eq('status','completed')
+  ]);
+  for(const x of [orders,vendors,customers,pending,cashOrders])if(x.error)throw x.error;
+  const list=orders.data||[],vs=vendors.data||[],completed=list.filter(o=>o.status==='completed');
+  const uniqueCustomers=new Set((customers.data||[]).map(x=>x.customer_id));
+  const day=new Date();day.setHours(0,0,0,0);const week=new Date(day);week.setDate(week.getDate()-6);const month=new Date(now.getFullYear(),now.getMonth(),1);
+  const countSince=d=>list.filter(o=>new Date(o.created_at)>=d).length;
+  const sum=(a,k)=>a.reduce((n,o)=>n+Number(o[k]||0),0);
+  const cashIds=(cashOrders.data||[]).map(o=>o.id);let settledLines=[];
+  if(cashIds.length){const q=await supabase.from('vendor_settlement_lines').select('order_id,amount_kobo').in('order_id',cashIds);if(q.error)throw q.error;settledLines=q.data||[];}
+  const settledBy=new Map();for(const l of settledLines)settledBy.set(l.order_id,(settledBy.get(l.order_id)||0)+Number(l.amount_kobo||0));
+  const cashOwed=(cashOrders.data||[]).reduce((n,o)=>n+Math.max(0,Number(o.service_fee||0)+Number(o.commission_amount||0)-(settledBy.get(o.id)||0)),0);
+  const seriesMap=new Map();for(const o of list){const date=o.created_at.slice(0,10),r=seriesMap.get(date)||{date,orders:0,revenue_kobo:0};r.orders++;if(o.status==='completed')r.revenue_kobo+=Number(o.subtotal_price??o.total_price??0);seriesMap.set(date,r);}
+  const vendorRev=new Map();for(const o of completed)vendorRev.set(o.vendor_id,(vendorRev.get(o.vendor_id)||0)+Number(o.subtotal_price??o.total_price??0));
+  const topVendors=vs.map(v=>({id:v.id,name:v.business_name,gmv_kobo:vendorRev.get(v.id)||0})).sort((a,b)=>b.gmv_kobo-a.gmv_kobo).slice(0,5);
+  const stats={orders_today:countSince(day),orders_week:countSince(week),orders_month:countSince(month),gmv_kobo:sum(completed,'subtotal_price')||sum(completed,'total_price'),service_fees_kobo:sum(completed,'service_fee'),commission_kobo:sum(completed,'commission_amount'),platform_profit_kobo:sum(completed,'service_fee')+sum(completed,'commission_amount'),active_vendors:vs.filter(v=>v.verification_status==='accepted'&&!v.admin_suspended).length,new_customers:uniqueCustomers.size,pending_vendor_applications:pending.count||0,cash_owed_kobo:cashOwed};
+  return res.json({success:true,range,stats,series:[...seriesMap.values()].sort((a,b)=>a.date.localeCompare(b.date)),top_vendors:topVendors,top_items:[]});
+ }catch(e){return next(e);}
+}
+async function getAdminProfile(req,res){return res.json({success:true,profile:req.admin.profile,email:req.admin.email});}
+async function listAuditLogs(req,res,next){try{const page=Math.max(1,Number(req.query.page)||1),limit=Math.min(100,Math.max(10,Number(req.query.limit)||25));const {data,error,count}=await supabase.from('admin_audit_logs').select('*',{count:'exact'}).order('created_at',{ascending:false}).range((page-1)*limit,page*limit-1);if(error)throw error;return res.json({success:true,data,total:count,page,limit});}catch(e){return next(e);}}
+module.exports={resetVendorActivation,getVendorSettlementSummary,createVendorSettlement,getDashboard,getAdminProfile,listAuditLogs,writeAudit};
