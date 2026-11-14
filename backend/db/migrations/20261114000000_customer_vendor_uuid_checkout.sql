@@ -110,5 +110,5 @@ begin
 end;
 $$;
 
-revoke all on function public.create_customer_order_with_stock(integer, uuid, uuid, text, text, text, text, jsonb) from public;
-grant execute on function public.create_customer_order_with_stock(integer, uuid, uuid, text, text, text, text, jsonb) to service_role;
+revoke all on function public.create_customer_order_with_stock(uuid, uuid, uuid, text, text, text, text, jsonb) from public;
+grant execute on function public.create_customer_order_with_stock(uuid, uuid, uuid, text, text, text, text, jsonb) to service_role;
