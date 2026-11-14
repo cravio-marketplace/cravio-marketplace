@@ -31,3 +31,5 @@ export const FEATURED_DURATIONS = [
     { value: 14, label: '2 weeks' },
     { value: 30, label: '30 days' },
 ];
+
+export const FOOD_CATEGORIES = ["Rice & Meals","Swallow","Soups","Pasta","Fast Food","Snacks","Drinks","Breakfast","Desserts","Other"];
