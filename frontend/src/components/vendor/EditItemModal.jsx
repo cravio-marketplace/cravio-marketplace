@@ -193,7 +193,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                     <Input
                         label="Price (₦)"
                         type="number"
-                        min={0}
+                        min={0.01}
                         step="0.01"
                         value={form.price}
                         onChange={(e) => set({ price: e.target.value })}
@@ -328,6 +328,8 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                                         }
                                         placeholder="₦"
                                         type="number"
+                                        min="0.01"
+                                        step="0.01"
                                         className="col-span-3 rounded-lg border border-gray-200 px-2 py-1.5 text-sm"
                                     />
                                     <input
