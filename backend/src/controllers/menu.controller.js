@@ -9,6 +9,12 @@ const supabase = require('../config/supabase');
 const { suggestCategory } = require('../services/categories');
 const { addStock } = require('../services/stock');
 
+// Menu API prices are always integer kobo. UI forms convert entered naira to kobo.
+const isValidPriceKobo = (value) => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const hasValidVariations = (variations) => !Array.isArray(variations) || variations.every((v) =>
+    v && typeof v.name === 'string' && v.name.trim().length > 0 && isValidPriceKobo(v.price)
+);
+
 /**
  * GET /api/menu
  */
@@ -53,8 +59,9 @@ async function create(req, res) {
         variations,
     } = req.body;
 
-    if (!name || !price) return res.status(400).json({ error: 'Name and price required' });
-    if (price < 0) return res.status(400).json({ error: 'Price cannot be negative' });
+    if (!name || typeof name !== 'string' || !name.trim()) return res.status(400).json({ error: 'Name is required.' });
+    if (!isValidPriceKobo(price)) return res.status(400).json({ error: 'Price must be a positive whole-number amount in kobo.' });
+    if (!hasValidVariations(variations)) return res.status(400).json({ error: 'Each variation needs a name and a positive whole-number price in kobo.' });
     if (quantity !== undefined && quantity < 0) return res.status(400).json({ error: 'Quantity cannot be negative' });
     if (low_stock_threshold !== undefined && low_stock_threshold < 0) return res.status(400).json({ error: 'Threshold cannot be negative' });
 
@@ -109,6 +116,8 @@ async function update(req, res) {
         variations,
     } = req.body;
 
+    if (!hasValidVariations(variations)) return res.status(400).json({ error: 'Each variation needs a name and a positive whole-number price in kobo.' });
+
     const patch = {};
     for (const [key, value] of Object.entries({
         name,
@@ -121,7 +130,7 @@ async function update(req, res) {
         image_url,
     })) {
         if (value === undefined) continue;
-        if (key === 'price' && value < 0) return res.status(400).json({ error: 'Price cannot be negative' });
+        if (key === 'price' && !isValidPriceKobo(value)) return res.status(400).json({ error: 'Price must be a positive whole-number amount in kobo.' });
         if (key === 'quantity' && value < 0) return res.status(400).json({ error: 'Quantity cannot be negative' });
         if (key === 'low_stock_threshold' && value < 0) return res.status(400).json({ error: 'Threshold cannot be negative' });
         patch[key] = value;
