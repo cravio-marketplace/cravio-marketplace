@@ -135,7 +135,7 @@ export default function OrderDetailModal({ open, onClose, orderId, refresh }) {
                                 <tbody className="divide-y divide-gray-100">
                                     {order.items?.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-gray-50">
-                                            <td className="px-4 py-3 text-gray-800">{item.name}</td>
+                                            <td className="px-4 py-3 text-gray-800"><div className="font-medium">{item.name}</div>{item.special_instructions && <p className="mt-1 text-xs leading-5 text-amber-700 bg-amber-50 rounded-lg px-2 py-1">Preparation: {item.special_instructions}</p>}</td>
                                             <td className="px-4 py-3 text-center text-gray-600">{item.quantity}</td>
                                             <td className="px-4 py-3 text-right text-gray-800">{formatNaira(item.price)}</td>
                                         </tr>
