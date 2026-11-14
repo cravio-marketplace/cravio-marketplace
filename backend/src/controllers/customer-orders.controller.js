@@ -21,7 +21,9 @@ async function create(req, res, next) {
             client_order_id: clientOrderId,
         } = req.body || {};
 
-        if (!vendorId || !Number.isSafeInteger(Number(vendorId)) || Number(vendorId) <= 0) {
+        // Vendor IDs are Supabase Auth UUIDs (vendors.id references auth.users.id).
+        // Do not coerce them to numbers: that rejects every legitimate vendor UUID.
+        if (typeof vendorId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(vendorId)) {
             return res.status(400).json({ error: 'A valid vendor is required.' });
         }
         if (!Array.isArray(items) || items.length === 0 || items.length > MAX_LINES) {
@@ -36,7 +38,7 @@ async function create(req, res, next) {
         const { data: vendor, error: vendorError } = await supabase
             .from('vendors')
             .select('id,verification_status,is_accepting_orders,status')
-            .eq('id', Number(vendorId))
+            .eq('id', vendorId)
             .maybeSingle();
         if (vendorError) throw vendorError;
         if (!vendor || vendor.verification_status !== 'accepted' || vendor.is_accepting_orders !== true || vendor.status === 'closed') {
@@ -57,7 +59,7 @@ async function create(req, res, next) {
         }
 
         const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
-            p_vendor_id: Number(vendorId),
+            p_vendor_id: vendorId,
             p_customer_id: customer.id,
             p_client_order_id: clientOrderId,
             p_student_name: cleanText(studentName, 80),
