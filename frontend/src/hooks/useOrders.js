@@ -112,7 +112,7 @@ export function useOrders(vendorId) {
                         }
                     });
                 subscribing = false;
-            } catch (subscribeError) {
+            } catch {
                 subscribing = false;
                 connected = false;
                 if (!disposed) setRealtimeStatus('polling');
