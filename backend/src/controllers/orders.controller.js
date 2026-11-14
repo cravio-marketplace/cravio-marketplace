@@ -9,6 +9,7 @@
  */
 const { randomInt } = require('node:crypto');
 const supabase = require('../config/supabase');
+const { FEES } = require('../config/fees');
 
 async function list(req, res) {
     let query = supabase
@@ -108,7 +109,11 @@ async function complete(req, res) {
     // Atomic compare-and-set: only one request can move ready → completed.
     const { data, error } = await supabase
         .from('orders')
-        .update({ status: 'completed' })
+        .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            settlement_due_at: new Date(Date.now() + FEES.cashSettlement.dueDays * 24 * 60 * 60 * 1000).toISOString(),
+        })
         .eq('id', order.id)
         .eq('vendor_id', req.vendor.id)
         .eq('status', 'ready')
