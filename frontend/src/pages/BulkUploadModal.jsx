@@ -1,7 +1,7 @@
 /**
  * BulkUploadModal — drag a CSV of items to seed the menu quickly.
  *
- * CSV columns: name, price, category, available, quantity, low_stock_threshold, meal_time
+ * CSV columns: name, price (naira), category, available, quantity, low_stock_threshold, meal_time
  */
 import { useState } from 'react';
 import Papa from 'papaparse';
@@ -75,7 +75,7 @@ export default function BulkUploadModal({ onClose, onComplete }) {
             }
         >
             <p className="text-sm text-gray-600 mb-3">
-                Drop a CSV with columns: <code className="text-xs bg-gray-100 px-1 rounded">name, price, category, available, quantity, low_stock_threshold, meal_time</code>.
+                Drop a CSV with columns: <code className="text-xs bg-gray-100 px-1 rounded">name, price (naira), category, available, quantity, low_stock_threshold, meal_time</code>. The price column must contain naira amounts (for example, 1500); Cravio converts it to kobo before saving.
                 Meal times are pipe-separated (e.g. <code className="text-xs bg-gray-100 px-1 rounded">breakfast|lunch</code>).
             </p>
             <label className="block rounded-2xl border-2 border-dashed border-gray-200 p-6 text-center cursor-pointer hover:bg-gray-50">
