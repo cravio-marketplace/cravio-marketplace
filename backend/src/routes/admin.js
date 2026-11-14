@@ -1,13 +1,10 @@
-const router = require('express').Router();
-const { verifyAdmin } = require('../middleware/adminAuth');
-const {
-    resetVendorActivation,
-    getVendorSettlementSummary,
-    createVendorSettlement,
-} = require('../controllers/admin.controller');
-
-router.patch('/vendors/:vendorId/reset-activation', verifyAdmin, resetVendorActivation);
-router.get('/vendors/:vendorId/settlements/summary', verifyAdmin, getVendorSettlementSummary);
-router.post('/vendors/:vendorId/settlements', verifyAdmin, createVendorSettlement);
-
-module.exports = router;
+const router=require('express').Router();const {verifyAdmin,requireSuperAdmin}=require('../middleware/adminAuth');const ctrl=require('../controllers/admin.controller');const portal=require('../controllers/admin-portal.controller');
+router.get('/dashboard',verifyAdmin,ctrl.getDashboard);router.get('/admins',verifyAdmin,requireSuperAdmin,portal.adminsList);router.patch('/admins/:id',verifyAdmin,requireSuperAdmin,portal.adminUpdate);router.get('/profile',verifyAdmin,ctrl.getAdminProfile);router.get('/audit-logs',verifyAdmin,ctrl.listAuditLogs);
+router.get('/vendors',verifyAdmin,portal.vendors);router.get('/vendors/:id',verifyAdmin,portal.vendorDetail);router.post('/vendors/:id/:action',verifyAdmin,portal.vendorAction);
+router.get('/orders/export.csv',verifyAdmin,portal.exportOrders);router.get('/orders',verifyAdmin,portal.orders);router.get('/orders/:id',verifyAdmin,portal.orderDetail);router.post('/orders/:id/:action',verifyAdmin,portal.orderAction);
+router.get('/customers',verifyAdmin,portal.customers);router.get('/customers/:id/orders',verifyAdmin,portal.customerOrders);router.patch('/customers/:id/block',verifyAdmin,portal.customerBlock);
+router.get('/disputes',verifyAdmin,portal.disputes);router.patch('/disputes/:id',verifyAdmin,portal.disputeUpdate);
+router.get('/settings',verifyAdmin,requireSuperAdmin,portal.settings);router.put('/settings',verifyAdmin,requireSuperAdmin,portal.updateSettings);
+router.get('/settlements/export.csv',verifyAdmin,requireSuperAdmin,portal.exportSettlements);router.get('/settlements',verifyAdmin,portal.settlements);router.post('/settlements/:id/record',verifyAdmin,requireSuperAdmin,portal.settlementRecord);
+router.patch('/vendors/:vendorId/reset-activation',verifyAdmin,requireSuperAdmin,ctrl.resetVendorActivation);router.get('/vendors/:vendorId/settlements/summary',verifyAdmin,ctrl.getVendorSettlementSummary);router.post('/vendors/:vendorId/settlements',verifyAdmin,requireSuperAdmin,ctrl.createVendorSettlement);
+module.exports=router;
