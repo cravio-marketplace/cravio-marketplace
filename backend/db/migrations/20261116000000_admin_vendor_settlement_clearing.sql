@@ -1,6 +1,9 @@
 -- Atomic vendor settlement clearing.
 -- All amounts are integer kobo. The API must authenticate an admin before calling this RPC.
 
+CREATE UNIQUE INDEX IF NOT EXISTS vendor_settlements_vendor_period_unique_idx
+  ON public.vendor_settlements(vendor_id, period_start, period_end);
+
 CREATE OR REPLACE FUNCTION public.admin_create_vendor_settlement(
   p_vendor_id uuid,
   p_period_start timestamptz,
@@ -89,19 +92,28 @@ BEGIN
       USING ERRCODE = '22003';
   END IF;
 
-  INSERT INTO public.vendor_settlements (
-    vendor_id, period_start, period_end, gross_cash_collected_kobo,
-    service_fee_due_kobo, commission_due_kobo,
-    online_earnings_offset_kobo, cash_remitted_kobo,
-    status, notes
-  )
-  VALUES (
-    p_vendor_id, p_period_start, p_period_end, v_total_gross_cash,
-    v_total_service_fee, v_total_commission,
-    v_offset_remaining, v_cash_remaining,
-    'pending', NULLIF(LEFT(COALESCE(p_notes, ''), 1000), '')
-  )
-  RETURNING id INTO v_settlement_id;
+  -- Reuse one settlement statement for repeated partial payments in the same period.
+  SELECT id INTO v_settlement_id
+  FROM public.vendor_settlements
+  WHERE vendor_id = p_vendor_id
+    AND period_start = p_period_start
+    AND period_end = p_period_end
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    INSERT INTO public.vendor_settlements (
+      vendor_id, period_start, period_end, gross_cash_collected_kobo,
+      service_fee_due_kobo, commission_due_kobo,
+      online_earnings_offset_kobo, cash_remitted_kobo,
+      status, notes
+    )
+    VALUES (
+      p_vendor_id, p_period_start, p_period_end, v_total_gross_cash,
+      v_total_service_fee, v_total_commission,
+      0, 0, 'pending', NULLIF(LEFT(COALESCE(p_notes, ''), 1000), '')
+    )
+    RETURNING id INTO v_settlement_id;
+  END IF;
 
   -- Allocate online earnings offsets first, then cash remittances, against
   -- the oldest outstanding completed cash orders. Each allocation is ledgered.
@@ -172,7 +184,11 @@ BEGIN
   END;
 
   UPDATE public.vendor_settlements
-  SET status = v_status,
+  SET online_earnings_offset_kobo = online_earnings_offset_kobo
+        + COALESCE(p_online_earnings_offset_kobo, 0),
+      cash_remitted_kobo = cash_remitted_kobo
+        + COALESCE(p_cash_remitted_kobo, 0),
+      status = v_status,
       settled_at = CASE WHEN v_status = 'settled' THEN now() ELSE NULL END
   WHERE id = v_settlement_id;
 
