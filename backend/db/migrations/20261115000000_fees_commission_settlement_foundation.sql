@@ -85,6 +85,30 @@ BEFORE INSERT OR UPDATE OF verification_status ON public.vendors
 FOR EACH ROW
 EXECUTE FUNCTION public.set_vendor_activation_timestamp();
 
+-- Mark service fees as refunded when an order is cancelled or rejected.
+-- This records the fee reversal; any future online-payment provider refund
+-- must be executed by its payment webhook/workflow.
+CREATE OR REPLACE FUNCTION public.mark_order_service_fee_refunded()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $
+BEGIN
+  IF NEW.status IN ('cancelled', 'rejected', 'unfulfilled')
+     AND OLD.status IS DISTINCT FROM NEW.status
+     AND COALESCE(NEW.service_fee, 0) > 0
+     AND NEW.service_fee_refunded_at IS NULL THEN
+    NEW.service_fee_refunded_at := now();
+  END IF;
+  RETURN NEW;
+END;
+$;
+
+DROP TRIGGER IF EXISTS orders_mark_service_fee_refunded ON public.orders;
+CREATE TRIGGER orders_mark_service_fee_refunded
+BEFORE UPDATE OF status ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION public.mark_order_service_fee_refunded();
+
 -- The admin API uses the service-role client after checking the user's
 -- trusted Supabase app_metadata.role. No public/client execution is granted.
 CREATE OR REPLACE FUNCTION public.admin_reset_vendor_activation(
