@@ -199,6 +199,9 @@ BEGIN
     RETURN jsonb_build_object('duplicate', true, 'order', to_jsonb(v_existing));
   END IF;
 
+  -- Serialize first-order fee checks across simultaneous orders from one customer.
+  PERFORM 1 FROM auth.users WHERE id = p_customer_id FOR UPDATE;
+
   IF jsonb_typeof(p_items) <> 'array'
      OR jsonb_array_length(p_items) < 1
      OR jsonb_array_length(p_items) > 30 THEN
