@@ -51,9 +51,12 @@ async function create(req, res, next) {
             if (!Number.isSafeInteger(itemId) || itemId <= 0 || !Number.isSafeInteger(quantity) || quantity <= 0 || quantity > MAX_QUANTITY_PER_LINE) {
                 return res.status(400).json({ error: 'One or more cart items are invalid.' });
             }
-            const combined = (quantities.get(itemId) || 0) + quantity;
+            const previous = quantities.get(itemId) || { quantity: 0, special_instructions: '' };
+            const combined = previous.quantity + quantity;
             if (combined > MAX_QUANTITY_PER_LINE) return res.status(400).json({ error: 'The quantity for an item cannot exceed 20.' });
-            quantities.set(itemId, { quantity: combined, special_instructions: cleanText(line?.special_instructions, 300) });
+            const note = cleanText(line?.special_instructions, 300);
+            const mergedNotes = [...new Set([previous.special_instructions, note].filter(Boolean))].join(' | ').slice(0, 300);
+            quantities.set(itemId, { quantity: combined, special_instructions: mergedNotes });
         }
 
         const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
