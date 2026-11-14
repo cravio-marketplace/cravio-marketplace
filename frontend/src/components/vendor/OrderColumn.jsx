@@ -84,7 +84,10 @@ export default function OrderColumn({ status, orders, onAction, onViewDetail, on
                                 </div>
                                 {def.cta && (
                                     <button
-                                        onClick={(event) => {\n                                            event.stopPropagation();\n                                            onAction(order);\n                                        }}
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            onAction(order);
+                                        }}
                                         className="text-xs font-medium rounded-lg px-3 py-1.5 bg-brand-orange-500 text-white hover:bg-brand-orange-600"
                                     >
                                         {def.cta}
