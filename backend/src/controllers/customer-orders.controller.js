@@ -53,7 +53,7 @@ async function create(req, res, next) {
             }
             const combined = (quantities.get(itemId) || 0) + quantity;
             if (combined > MAX_QUANTITY_PER_LINE) return res.status(400).json({ error: 'The quantity for an item cannot exceed 20.' });
-            quantities.set(itemId, combined);
+            quantities.set(itemId, { quantity: combined, special_instructions: cleanText(line?.special_instructions, 300) });
         }
 
         const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
@@ -64,7 +64,7 @@ async function create(req, res, next) {
             p_student_phone: cleanText(studentPhone, 24),
             p_pickup_point: cleanText(pickupPoint, 160),
             p_pickup_instructions: cleanText(pickupInstructions, 500),
-            p_items: [...quantities.entries()].map(([menu_item_id, quantity]) => ({ menu_item_id, quantity })),
+            p_items: [...quantities.entries()].map(([menu_item_id, value]) => ({ menu_item_id, quantity: value.quantity, special_instructions: value.special_instructions })),
         });
 
         if (error) {
