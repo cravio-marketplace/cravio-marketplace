@@ -87,7 +87,7 @@ async function dashboard(req, res) {
     today.setHours(0, 0, 0, 0);
 
     const [{ data: orders, error: ordersErr }, lowStock] = await Promise.all([
-        supabase.from('orders').select('id, total_price, status, created_at').eq('vendor_id', vendorId),
+        supabase.from('orders').select('id, total_price, subtotal_price, service_fee, commission_amount, status, created_at').eq('vendor_id', vendorId),
         listLowStock(supabase, vendorId).catch(() => []),
     ]);
     if (ordersErr) return res.status(500).json({ error: ordersErr.message });
@@ -95,7 +95,7 @@ async function dashboard(req, res) {
     const todays = (orders || []).filter((order) => new Date(order.created_at) >= today);
     const todaysRevenue = todays
         .filter((order) => order.status === 'completed')
-        .reduce((sum, order) => sum + (order.total_price || 0), 0);
+        .reduce((sum, order) => sum + (order.subtotal_price ?? order.total_price ?? 0), 0);
     const activeStatuses = new Set(['pending', 'accepted', 'ready']);
     const active = (orders || []).filter((order) => activeStatuses.has(order.status));
 
