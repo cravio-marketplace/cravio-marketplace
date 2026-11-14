@@ -101,8 +101,9 @@ export default function Header({ vendor, stats, onSearch, pendingOrders = [] }) 
                 <div className="flex items-center gap-2">
                     <button
                         onClick={onTogglePause}
-                        className="hidden sm:inline-flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 hover:bg-gray-100"
+                        className="inline-flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl text-gray-600 hover:bg-gray-100 active:bg-gray-200 shrink-0"
                         title={vendor?.is_accepting_orders ? 'Pause orders' : 'Resume orders'}
+                        aria-label={vendor?.is_accepting_orders ? 'Pause accepting orders' : 'Resume accepting orders'}
                     >
                         {vendor?.is_accepting_orders ? <Pause size={18} /> : <Play size={18} />}
                     </button>
