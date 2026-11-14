@@ -141,7 +141,7 @@ async function signup(req, res) {
         // Use the public Auth sign-up flow so Supabase actually sends the
         // confirmation email. Admin createUser only creates an unconfirmed
         // user; it does not send a confirmation message.
-        const vendorFrontendUrl = (process.env.VENDOR_FRONTEND_URL || 'https://cravio-marketplace-opal.vercel.app').replace(/\\/+$/, '');
+        const vendorFrontendUrl = (process.env.VENDOR_FRONTEND_URL || 'https://cravio-marketplace-opal.vercel.app').replace(/\/+$/, '');
         const { data: authData, error: authError } = await supabaseAuth.auth.signUp({
             email: normalizedEmail,
             password,
