@@ -10,7 +10,7 @@ async function platformFees(){
  const defaults={service_fee_rate_bps:FEES.customerServiceFee.rateBps,service_fee_min_kobo:FEES.customerServiceFee.minKobo,service_fee_max_kobo:FEES.customerServiceFee.maxKobo,first_order_fee_waived:FEES.customerServiceFee.firstOrderFree,commission_rate_bps:FEES.vendorCommission.rateBps,commission_free_days:FEES.vendorCommission.freeDays,cash_owed_cap_kobo:FEES.cashSettlement.outstandingCapKobo,settlement_due_days:FEES.cashSettlement.dueDays};
  const {data,error}=await supabase.from('platform_settings').select('key,value');if(error&&error.code!=='42P01')throw error;
  const values={...defaults};for(const row of data||[]){if(row.key in values)values[row.key]=row.value;}
- return Object.fromEntries(Object.entries(values).map(([k,v])=>[k,typeof v==='string'&&/^\\d+$/.test(v)?Number(v):v]));
+ return Object.fromEntries(Object.entries(values).map(([k,v])=>[k,typeof v==='string'&&/^\d+$/.test(v)?Number(v):v]));
 }
 function calcFee(subtotal,settings,first=false){if(settings.first_order_fee_waived&&first)return 0;const rounded=Math.round((subtotal*settings.service_fee_rate_bps)/10000/100)*100;return Math.min(settings.service_fee_max_kobo,Math.max(settings.service_fee_min_kobo,rounded));}
 const MAX_QUANTITY_PER_LINE = 20;
