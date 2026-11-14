@@ -17,6 +17,7 @@ const categoriesRoutes = require('./routes/categories');
 const keywordsRoutes = require('./routes/keywords');
 const featuredRoutes = require('./routes/featured');
 const supportRoutes = require('./routes/support');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -74,6 +75,7 @@ app.use('/api/vendor/categories', categoriesRoutes);
 app.use('/api/vendor/keywords', keywordsRoutes);
 app.use('/api/vendor/featured', featuredRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.get('/', (_req, res) => res.json({ message: 'Cravio API running', version: '2.1' }));
 app.get('/health', async (_req, res) => {
