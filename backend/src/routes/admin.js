@@ -1,5 +1,5 @@
 const router=require('express').Router();const {verifyAdmin,requireSuperAdmin}=require('../middleware/adminAuth');const ctrl=require('../controllers/admin.controller');const portal=require('../controllers/admin-portal.controller');
-router.get('/dashboard',verifyAdmin,ctrl.getDashboard);router.get('/profile',verifyAdmin,ctrl.getAdminProfile);router.get('/audit-logs',verifyAdmin,ctrl.listAuditLogs);
+router.get('/dashboard',verifyAdmin,ctrl.getDashboard);router.get('/admins',verifyAdmin,requireSuperAdmin,portal.adminsList);router.patch('/admins/:id',verifyAdmin,requireSuperAdmin,portal.adminUpdate);router.get('/profile',verifyAdmin,ctrl.getAdminProfile);router.get('/audit-logs',verifyAdmin,ctrl.listAuditLogs);
 router.get('/vendors',verifyAdmin,portal.vendors);router.get('/vendors/:id',verifyAdmin,portal.vendorDetail);router.post('/vendors/:id/:action',verifyAdmin,portal.vendorAction);
 router.get('/orders/export.csv',verifyAdmin,portal.exportOrders);router.get('/orders',verifyAdmin,portal.orders);router.get('/orders/:id',verifyAdmin,portal.orderDetail);router.post('/orders/:id/:action',verifyAdmin,portal.orderAction);
 router.get('/customers',verifyAdmin,portal.customers);router.get('/customers/:id/orders',verifyAdmin,portal.customerOrders);router.patch('/customers/:id/block',verifyAdmin,portal.customerBlock);
