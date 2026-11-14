@@ -197,7 +197,7 @@ async function getDashboard(req,res,next){
   const range=String(req.query.range||'30d');const now=new Date();const start=new Date(now);
   if(range==='today')start.setHours(0,0,0,0);else if(range==='7d')start.setDate(start.getDate()-7);else if(range==='30d')start.setDate(start.getDate()-30);else if(range==='90d')start.setDate(start.getDate()-90);else return res.status(400).json({error:'range must be today, 7d, 30d or 90d'});
   const [orders,vendors,customers,pending,cashOrders]=await Promise.all([
-   supabase.from('orders').select('id,vendor_id,customer_id,total_price,subtotal_price,service_fee,commission_amount,status,payment_method,created_at,completed_at,settlement_due_at').gte('created_at',start.toISOString()),
+   supabase.from('orders').select('id,vendor_id,customer_id,items,total_price,subtotal_price,service_fee,commission_amount,status,payment_method,created_at,completed_at,settlement_due_at').gte('created_at',start.toISOString()),
    supabase.from('vendors').select('id,business_name,verification_status,admin_suspended,created_at'),
    supabase.from('orders').select('customer_id').gte('created_at',start.toISOString()).not('customer_id','is',null),
    supabase.from('vendors').select('id',{count:'exact',head:true}).eq('verification_status','pending'),
@@ -205,7 +205,7 @@ async function getDashboard(req,res,next){
   ]);
   for(const x of [orders,vendors,customers,pending,cashOrders])if(x.error)throw x.error;
   const list=orders.data||[],vs=vendors.data||[],completed=list.filter(o=>o.status==='completed');
-  const uniqueCustomers=new Set((customers.data||[]).map(x=>x.customer_id));
+  const uniqueCustomers=new Set((customers.data||[]).map(x=>x.customer_id));\n  let newCustomers=0;for(let p=1;p<=5;p++){const u=await supabase.auth.admin.listUsers({page:p,perPage:1000});if(u.error)throw u.error;const users=u.data.users||[];newCustomers+=users.filter(x=>new Date(x.created_at)>=start&&(!x.user_metadata?.role||x.user_metadata?.role==='student')).length;if(users.length<1000)break;}
   const day=new Date();day.setHours(0,0,0,0);const week=new Date(day);week.setDate(week.getDate()-6);const month=new Date(now.getFullYear(),now.getMonth(),1);
   const countSince=d=>list.filter(o=>new Date(o.created_at)>=d).length;
   const sum=(a,k)=>a.reduce((n,o)=>n+Number(o[k]||0),0);
@@ -216,8 +216,8 @@ async function getDashboard(req,res,next){
   const seriesMap=new Map();for(const o of list){const date=o.created_at.slice(0,10),r=seriesMap.get(date)||{date,orders:0,revenue_kobo:0};r.orders++;if(o.status==='completed')r.revenue_kobo+=Number(o.subtotal_price??o.total_price??0);seriesMap.set(date,r);}
   const vendorRev=new Map();for(const o of completed)vendorRev.set(o.vendor_id,(vendorRev.get(o.vendor_id)||0)+Number(o.subtotal_price??o.total_price??0));
   const topVendors=vs.map(v=>({id:v.id,name:v.business_name,gmv_kobo:vendorRev.get(v.id)||0})).sort((a,b)=>b.gmv_kobo-a.gmv_kobo).slice(0,5);
-  const stats={orders_today:countSince(day),orders_week:countSince(week),orders_month:countSince(month),gmv_kobo:sum(completed,'subtotal_price')||sum(completed,'total_price'),service_fees_kobo:sum(completed,'service_fee'),commission_kobo:sum(completed,'commission_amount'),platform_profit_kobo:sum(completed,'service_fee')+sum(completed,'commission_amount'),active_vendors:vs.filter(v=>v.verification_status==='accepted'&&!v.admin_suspended).length,new_customers:uniqueCustomers.size,pending_vendor_applications:pending.count||0,cash_owed_kobo:cashOwed};
-  return res.json({success:true,range,stats,series:[...seriesMap.values()].sort((a,b)=>a.date.localeCompare(b.date)),top_vendors:topVendors,top_items:[]});
+  const itemMap=new Map();for(const o of completed){const lines=Array.isArray(o.items)?o.items:[];for(const item of lines){const nm=String(item.name||item.title||'Item');const qty=Number(item.qty||item.quantity||1);itemMap.set(nm,(itemMap.get(nm)||0)+qty);}}\n  const topItems=[...itemMap.entries()].map(([name,quantity])=>({name,quantity})).sort((a,b)=>b.quantity-a.quantity).slice(0,5);\n  const stats={orders_today:countSince(day),orders_week:countSince(week),orders_month:countSince(month),gmv_kobo:sum(completed,'subtotal_price')||sum(completed,'total_price'),service_fees_kobo:sum(completed,'service_fee'),commission_kobo:sum(completed,'commission_amount'),platform_profit_kobo:sum(completed,'service_fee')+sum(completed,'commission_amount'),active_vendors:vs.filter(v=>v.verification_status==='accepted'&&!v.admin_suspended).length,new_customers:newCustomers,pending_vendor_applications:pending.count||0,cash_owed_kobo:cashOwed};
+  return res.json({success:true,range,stats,series:[...seriesMap.values()].sort((a,b)=>a.date.localeCompare(b.date)),top_vendors:topVendors,top_items:topItems});
  }catch(e){return next(e);}
 }
 async function getAdminProfile(req,res){return res.json({success:true,profile:req.admin.profile,email:req.admin.email});}
