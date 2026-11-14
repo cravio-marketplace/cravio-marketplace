@@ -86,10 +86,23 @@ async function create(req, res) {
             quantity: v.quantity ?? null,
             available: v.available !== false,
         }));
-        await supabase.from('item_variants').insert(variantInserts);
+        const { error: variantsError } = await supabase.from('item_variants').insert(variantInserts);
+        if (variantsError) {
+            // Avoid leaving a partially-created food item when its options fail.
+            await supabase.from('menu_items').delete().eq('id', menuItem.id).eq('vendor_id', req.vendor.id);
+            return res.status(500).json({ error: `Food was not saved because its options failed: ${variantsError.message}` });
+        }
     }
 
-    res.json({ success: true, item: menuItem });
+    // Return the canonical record including its options, not a partial insert response.
+    const { data: savedItem, error: readError } = await supabase
+        .from('menu_items')
+        .select('*, item_variants(*)')
+        .eq('id', menuItem.id)
+        .eq('vendor_id', req.vendor.id)
+        .single();
+    if (readError) return res.status(500).json({ error: readError.message });
+    res.status(201).json({ success: true, item: savedItem });
 }
 
 /**
