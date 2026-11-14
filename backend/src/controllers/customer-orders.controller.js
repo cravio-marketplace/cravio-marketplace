@@ -3,6 +3,7 @@
  * reservation and order insertion commit or roll back together.
  */
 const supabase = require('../config/supabase');
+const { FEES, calculateServiceFee } = require('../config/fees');
 
 const MAX_LINES = 30;
 const MAX_QUANTITY_PER_LINE = 20;
@@ -11,6 +12,16 @@ function cleanText(value, maxLength) {
     return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 }
 
+async function feePreview(req, res, next) {
+    try {
+        const subtotalKobo = Number(req.query.subtotal_kobo);
+        if (!Number.isSafeInteger(subtotalKobo) || subtotalKobo <= 0) return res.status(400).json({ error: 'A valid subtotal in kobo is required.' });
+        const { count, error } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('customer_id', req.customer.id);
+        if (error) throw error;
+        const isFirstOrder = (count || 0) === 0;
+        return res.json({ success: true, is_first_order: isFirstOrder, service_fee: calculateServiceFee(subtotalKobo, isFirstOrder), currency_unit: 'kobo' });
+    } catch (error) { return next(error); }
+}
 async function create(req, res, next) {
     try {
         const customer = req.customer;
@@ -67,12 +78,20 @@ async function create(req, res, next) {
             p_pickup_point: cleanText(pickupPoint, 160),
             p_pickup_instructions: cleanText(pickupInstructions, 500),
             p_items: [...quantities.entries()].map(([menu_item_id, quantity]) => ({ menu_item_id, quantity })),
+            p_service_fee_rate_bps: FEES.customerServiceFee.rateBps,
+            p_service_fee_min_kobo: FEES.customerServiceFee.minKobo,
+            p_service_fee_max_kobo: FEES.customerServiceFee.maxKobo,
+            p_first_order_fee_waived: FEES.customerServiceFee.firstOrderFree,
+            p_commission_rate_bps: FEES.vendorCommission.rateBps,
+            p_commission_free_days: FEES.vendorCommission.freeDays,
+            p_cash_owed_cap_kobo: FEES.cashSettlement.outstandingCapKobo,
+            p_settlement_due_days: FEES.cashSettlement.dueDays,
         });
 
         if (error) {
             console.error('Atomic customer checkout failed:', error);
             const message = error.message || 'Unable to place your order.';
-            if (/insufficient stock|unavailable|invalid cart item|cart must contain/i.test(message)) {
+            if (/insufficient stock|unavailable|invalid cart item|cart must contain|cash on pickup.*disabled|settlement.*overdue/i.test(message)) {
                 return res.status(409).json({ error: message });
             }
             return next(error);
@@ -89,7 +108,7 @@ async function create(req, res, next) {
 async function listMine(req, res, next) {
     try {
         const { data, error } = await supabase.from('orders')
-            .select('id,vendor_id,customer_id,student_name,items,total_price,payment_method,payment_status,status,pickup_code,pickup_point,pickup_instructions,created_at,updated_at')
+            .select('id,vendor_id,customer_id,student_name,items,subtotal_price,service_fee,commission_amount,total_price,payment_method,payment_status,status,pickup_code,pickup_point,pickup_instructions,created_at,updated_at')
             .eq('customer_id', req.customer.id).order('created_at', { ascending: false }).limit(100);
         if (error) throw error;
         return res.json({ success: true, orders: data || [] });
@@ -101,7 +120,7 @@ async function getMine(req, res, next) {
         const orderId = Number(req.params.orderId);
         if (!Number.isSafeInteger(orderId) || orderId <= 0) return res.status(400).json({ error: 'Invalid order ID.' });
         const { data, error } = await supabase.from('orders')
-            .select('id,vendor_id,customer_id,student_name,items,total_price,payment_method,payment_status,status,pickup_code,pickup_point,pickup_instructions,created_at,updated_at')
+            .select('id,vendor_id,customer_id,student_name,items,subtotal_price,service_fee,commission_amount,total_price,payment_method,payment_status,status,pickup_code,pickup_point,pickup_instructions,created_at,updated_at')
             .eq('id', orderId).eq('customer_id', req.customer.id).maybeSingle();
         if (error) throw error;
         if (!data) return res.status(404).json({ error: 'Order not found.' });
@@ -109,4 +128,4 @@ async function getMine(req, res, next) {
     } catch (error) { return next(error); }
 }
 
-module.exports = { create, listMine, getMine };
+module.exports = { feePreview, create, listMine, getMine };
