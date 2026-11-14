@@ -30,12 +30,12 @@ async function resetVendorActivation(req, res, next) {
         if (!UUID_RE.test(vendorId)) {
             return res.status(400).json({ error: 'A valid vendor ID is required.' });
         }
-        const { data, error } = await supabase.rpc('admin_reset_vendor_activation', {
+        const before = await supabase.from('vendors').select('id,activated_at').eq('id',vendorId).maybeSingle();\n        if (before.error) throw before.error;\n        const { data, error } = await supabase.rpc('admin_reset_vendor_activation', {
             p_vendor_id: vendorId,
             p_activated_at: new Date().toISOString(),
         });
         if (error) throw error;
-        return res.json({ success: true, message: 'Vendor free-commission period reset.', vendor: data });
+        await writeAudit(req, 'vendor_reset_activation', 'vendor', vendorId, before.data, data, req.body?.reason);\n        return res.json({ success: true, message: 'Vendor free-commission period reset.', vendor: data });
     } catch (error) {
         return next(error);
     }
@@ -175,7 +175,7 @@ async function createVendorSettlement(req, res, next) {
         });
         if (error) throw mapSettlementError(error);
 
-        return res.status(201).json({ success: true, settlement: data });
+        await writeAudit(req, 'settlement_create', 'settlement', data?.settlement_id, null, data, notes);\n        return res.status(201).json({ success: true, settlement: data });
     } catch (error) {
         return next(error);
     }
