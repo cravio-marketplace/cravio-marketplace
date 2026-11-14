@@ -19,15 +19,11 @@ function cleanText(value, maxLength) {
     return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 }
 
-async function feePreview(req, res, next) {
-    try {
-        const subtotalKobo = Number(req.query.subtotal_kobo);
-        if (!Number.isSafeInteger(subtotalKobo) || subtotalKobo <= 0) return res.status(400).json({ error: 'A valid subtotal in kobo is required.' });
-        const { count, error } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('customer_id', req.customer.id);
-        if (error) throw error;
-        const isFirstOrder = (count || 0) === 0;
-        return res.json({ success: true, is_first_order: isFirstOrder, service_fee: calculateServiceFee(subtotalKobo, isFirstOrder), currency_unit: 'kobo' });
-    } catch (error) { return next(error); }
+async function feePreview(req,res,next){
+ try{const subtotalKobo=Number(req.query.subtotal_kobo);if(!Number.isSafeInteger(subtotalKobo)||subtotalKobo<=0)return res.status(400).json({error:'A valid subtotal in kobo is required.'});
+ const [{count,error},settings]=await Promise.all([supabase.from('orders').select('id',{count:'exact',head:true}).eq('customer_id',req.customer.id),platformFees()]);
+ if(error)throw error;const isFirstOrder=(count||0)===0;return res.json({success:true,is_first_order:isFirstOrder,service_fee:calcFee(subtotalKobo,settings,isFirstOrder),currency_unit:'kobo'});
+ }catch(e){return next(e);}
 }
 async function create(req, res, next) {
     try {
