@@ -9,14 +9,13 @@
  * On save the parent gets a payload ready for POST/PUT /api/menu.
  */
 import { useState } from 'react';
-import { Plus, Trash2, Upload, X } from 'lucide-react';
+import { Plus, Trash2, Upload, X, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Modal from '../common/Modal';
 import Input from '../common/Input';
 import Select from '../common/Select';
 import Button from '../common/Button';
 import { uploadMenuImage } from '../../api/uploads';
-import { createCategory } from '../../api/menu';
 import { mapError } from '../../api/client';
 import { MEAL_TIME_OPTIONS } from '../../utils/constants';
 
@@ -34,25 +33,26 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
     });
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
-    const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-    const [newCategoryName, setNewCategoryName] = useState('');
 
     const set = (patch) => setForm((f) => ({ ...f, ...patch }));
 
-    const handleCreateCategory = async (e) => {
-        if (e) e.preventDefault();
-        const name = newCategoryName.trim();
-        if (!name) return;
+    const suggestedVariations = () => {
+        const text = `${form.name} ${form.category}`.toLowerCase();
+        let names = ['Small', 'Medium', 'Large'];
+        if (/drink|juice|water|smoothie|zobo|kunun|tea|coffee|soft drink/.test(text)) names = ['Small', 'Medium', 'Large'];
+        else if (/shawarma|burger|sandwich|pizza|wrap/.test(text)) names = ['Regular', 'Large'];
+        else if (/chicken|beef|fish|turkey|protein|egg/.test(text)) names = ['Chicken', 'Beef', 'Fish'];
+        return names.map((name, index) => ({
+            name,
+            price: String(Number(form.price || 0) + (index * 300)),
+            quantity: '',
+            available: true,
+        }));
+    };
 
-        try {
-            await createCategory(name);
-            set({ category: name });
-            setIsCreatingCategory(false);
-            setNewCategoryName('');
-            toast.success('Category created');
-        } catch (err) {
-            toast.error(mapError(err));
-        }
+    const applySuggestedVariations = () => {
+        set({ variations: suggestedVariations() });
+        toast.success('Suggested options added. Review each price before saving.');
     };
 
     const toggleMeal = (id) =>
@@ -203,46 +203,15 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {isCreatingCategory ? (
-                        <div className="flex flex-col gap-1.5">
-                            <label className="block text-sm font-medium text-gray-700">New Category</label>
-                            <div className="flex gap-2">
-                                <Input
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    placeholder="e.g. Desserts"
-                                    autoFocus
-                                />
-                                <Button onClick={handleCreateCategory} size="sm" loading={loading}>
-                                    Create
-                                </Button>
-                                <Button variant="ghost" onClick={() => setIsCreatingCategory(false)} size="sm">
-                                    Cancel
-                                </Button>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col gap-1.5">
-                            <Select
-                                label="Category"
-                                value={form.category}
-                                onChange={(e) => set({ category: e.target.value })}
-                                options={[
-                                    { value: '', label: 'Uncategorized' },
-                                    ...categories.map((c) => ({ value: c.name, label: c.name })),
-                                    { value: 'CREATE_NEW', label: '+ Create new category', className: 'text-brand-orange-600 font-medium' },
-                                ]}
-                                // We need to handle the 'CREATE_NEW' value specifically
-                                onSelect={(val) => {
-                                    if (val === 'CREATE_NEW') {
-                                        setIsCreatingCategory(true);
-                                    } else {
-                                        set({ category: val });
-                                    }
-                                }}
-                            />
-                        </div>
-                    )}
+                    <Select
+                        label="Category"
+                        value={form.category}
+                        onChange={(e) => set({ category: e.target.value })}
+                        options={[
+                            { value: '', label: 'Choose category' },
+                            ...categories.map((c) => ({ value: c.name, label: c.name })),
+                        ]}
+                    />
                     <Input
                         label="Low-stock alert at"
                         type="number"
@@ -297,7 +266,7 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
 
                 <div>
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-700">Variations</p>
+                        <div><p className="text-sm font-medium text-gray-700">Options / Variations</p><p className="text-xs text-gray-500">Use suggestions or customize sizes and prices.</p></div>
                         <button
                             type="button"
                             onClick={addVariation}
@@ -306,6 +275,11 @@ export default function EditItemModal({ item, categories = [], onClose, onSave }
                             <Plus size={14} /> Add variation
                         </button>
                     </div>
+                    {form.variations.length === 0 && (
+                        <button type="button" onClick={applySuggestedVariations} className="mb-3 inline-flex items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2 text-sm font-medium text-orange-700 hover:bg-orange-100">
+                            <Sparkles size={14} /> Suggest options for this food
+                        </button>
+                    )}
                     {form.variations.length > 0 && (
                         <div className="space-y-2">
                             {form.variations.map((v, idx) => (
