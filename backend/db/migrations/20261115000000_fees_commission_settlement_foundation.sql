@@ -56,12 +56,8 @@ CREATE INDEX IF NOT EXISTS vendor_settlement_lines_order_idx
 ALTER TABLE public.vendor_settlements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vendor_settlement_lines ENABLE ROW LEVEL SECURITY;
 
--- Existing approved vendors start their 60-day introductory period at rollout.
--- This is a forward-only activation baseline; it does not infer historical approval dates.
-UPDATE public.vendors
-SET activated_at = now()
-WHERE verification_status = 'accepted'
-  AND activated_at IS NULL;
+-- Existing accepted vendors remain NULL until an admin explicitly sets their activation date.
+-- This avoids inventing a historical approval date or silently changing commission terms.
 
 CREATE OR REPLACE FUNCTION public.set_vendor_activation_timestamp()
 RETURNS trigger
@@ -319,8 +315,9 @@ BEGIN
     );
   END IF;
 
-  IF v_activated_at IS NULL
-     OR now() >= v_activated_at + make_interval(days => p_commission_free_days) THEN
+  -- A missing activation date fails safe: do not charge commission until an admin sets it.
+  IF v_activated_at IS NOT NULL
+     AND now() >= v_activated_at + make_interval(days => p_commission_free_days) THEN
     v_commission := ROUND(v_subtotal::numeric * p_commission_rate_bps / 10000);
   END IF;
 
