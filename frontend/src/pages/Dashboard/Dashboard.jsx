@@ -40,6 +40,7 @@ import ErrorState from '../../components/ui/ErrorState';
 import Card from '../../components/common/Card';
 import Badge from '../../components/common/Badge';
 import Button from '../../components/common/Button';
+import { FOOD_CATEGORIES } from '../../utils/constants';
 
 /**
  * QuickActions — small row above the kanban with the two shortcuts the
@@ -304,7 +305,7 @@ export default function Dashboard() {
                     {activeView === 'menu' && (
                         <MenuGrid
                             menu={menu}
-                            categories={[]}
+                            categories={FOOD_CATEGORIES.map((name, index) => ({ id: index, name }))}
                             onAdd={() => setShowAddItem(true)}
                             onEdit={setEditingItem}
                             onDelete={handleDelete}
