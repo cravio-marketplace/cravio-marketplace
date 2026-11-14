@@ -87,7 +87,7 @@ EXECUTE FUNCTION public.set_vendor_activation_timestamp();
 CREATE OR REPLACE FUNCTION public.mark_order_service_fee_refunded()
 RETURNS trigger
 LANGUAGE plpgsql
-AS $
+AS $$
 BEGIN
   IF NEW.status IN ('cancelled', 'rejected', 'unfulfilled')
      AND OLD.status IS DISTINCT FROM NEW.status
@@ -97,7 +97,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$$;
 
 DROP TRIGGER IF EXISTS orders_mark_service_fee_refunded ON public.orders;
 CREATE TRIGGER orders_mark_service_fee_refunded
