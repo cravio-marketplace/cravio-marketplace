@@ -1,7 +1,7 @@
 -- Cravio inventory reservation at customer checkout.
 -- Vendor IDs are UUIDs because vendors.id is the Supabase Auth user ID.
 -- Remove the earlier integer-signature function before installing the UUID version.
-DROP FUNCTION IF EXISTS public.create_customer_order_with_stock(uuid, uuid, uuid, text, text, text, text, jsonb);
+DROP FUNCTION IF EXISTS public.create_customer_order_with_stock(integer, uuid, uuid, text, text, text, text, jsonb);
 -- Apply this migration in the shared Supabase SQL Editor before deploying the backend changes.
 -- Stock is reserved when the order is created, not when it is picked up.
 
