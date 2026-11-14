@@ -29,6 +29,8 @@ const defaultAllowedOrigins = [
     'https://cravio-marketplace-opal.vercel.app',
     'https://cravio-marketplace-git-main-cravio-marketplace.vercel.app',
     'https://cravio-marketplace-3i3xw7oan-cravio-marketplace.vercel.app',
+    'https://cravio-main-marketplace.vercel.app',
+    'https://cravio-main-marketplace-git-main-cravio-marketplace.vercel.app',
 ];
 
 const configuredOrigins = (process.env.FRONTEND_URL || '')
@@ -38,7 +40,7 @@ const configuredOrigins = (process.env.FRONTEND_URL || '')
 
 const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins]);
 const isCravioVercelOrigin = (origin) =>
-    /^https:\/\/cravio-marketplace(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+    /^https:\/\/(?:cravio-marketplace|cravio-main-marketplace)(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
 
 const corsOptions = {
     origin: (origin, callback) => {
