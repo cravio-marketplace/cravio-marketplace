@@ -39,10 +39,12 @@ const configuredOrigins = (process.env.FRONTEND_URL || '')
 const allowedOrigins = new Set([...defaultAllowedOrigins, ...configuredOrigins]);
 const isCravioVercelOrigin = (origin) =>
     /^https:\/\/cravio-marketplace(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
+const isCustomerVercelOrigin = (origin) =>
+    /^https:\/\/cravio-main-marketplace(?:-[a-z0-9-]+)?\.vercel\.app$/i.test(origin);
 
 const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.has(origin) || isCravioVercelOrigin(origin)) {
+        if (!origin || allowedOrigins.has(origin) || isCravioVercelOrigin(origin) || isCustomerVercelOrigin(origin)) {
             return callback(null, true);
         }
         console.warn('[CORS] Blocked origin:', origin);
