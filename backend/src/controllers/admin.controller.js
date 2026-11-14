@@ -227,6 +227,6 @@ async function getDashboard(req,res,next){
   return res.json({success:true,range,stats,series:[...seriesMap.values()].sort((a,b)=>a.date.localeCompare(b.date)),top_vendors:topVendors,top_items:topItems});
  }catch(e){return next(e);}
 }
-async function getAdminProfile(req,res){return res.json({success:true,profile:req.admin.profile,email:req.admin.email});}
+async function getAdminProfile(req,res,next){try{const {data,error}=await supabase.from('admin_profiles').update({last_login_at:new Date().toISOString()}).eq('user_id',req.admin.id).select('user_id,full_name,avatar_url,role,status,last_login_at,created_at').single();if(error)throw error;return res.json({success:true,profile:data,email:req.admin.email});}catch(e){return next(e);}}
 async function listAuditLogs(req,res,next){try{const page=Math.max(1,Number(req.query.page)||1),limit=Math.min(100,Math.max(10,Number(req.query.limit)||25));const {data,error,count}=await supabase.from('admin_audit_logs').select('*',{count:'exact'}).order('created_at',{ascending:false}).range((page-1)*limit,page*limit-1);if(error)throw error;return res.json({success:true,data,total:count,page,limit});}catch(e){return next(e);}}
 module.exports={resetVendorActivation,getVendorSettlementSummary,createVendorSettlement,getDashboard,getAdminProfile,listAuditLogs,writeAudit};
