@@ -7,7 +7,7 @@
 
 export function formatNaira(kobo) {
     const naira = (kobo || 0) / 100;
-    return `₦${naira.toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₦${naira.toLocaleString('en-NG', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 }
 
 export function formatDate(value) {
