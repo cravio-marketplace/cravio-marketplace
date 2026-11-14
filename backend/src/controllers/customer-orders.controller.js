@@ -81,14 +81,14 @@ async function create(req, res, next) {
             p_pickup_point: cleanText(pickupPoint, 160),
             p_pickup_instructions: cleanText(pickupInstructions, 500),
             p_items: [...quantities.entries()].map(([menu_item_id, quantity]) => ({ menu_item_id, quantity })),
-            p_service_fee_rate_bps: FEES.customerServiceFee.rateBps,
-            p_service_fee_min_kobo: FEES.customerServiceFee.minKobo,
-            p_service_fee_max_kobo: FEES.customerServiceFee.maxKobo,
-            p_first_order_fee_waived: FEES.customerServiceFee.firstOrderFree,
-            p_commission_rate_bps: FEES.vendorCommission.rateBps,
-            p_commission_free_days: FEES.vendorCommission.freeDays,
-            p_cash_owed_cap_kobo: FEES.cashSettlement.outstandingCapKobo,
-            p_settlement_due_days: FEES.cashSettlement.dueDays,
+            p_service_fee_rate_bps: settings.service_fee_rate_bps,
+            p_service_fee_min_kobo: settings.service_fee_min_kobo,
+            p_service_fee_max_kobo: settings.service_fee_max_kobo,
+            p_first_order_fee_waived: settings.first_order_fee_waived,
+            p_commission_rate_bps: commissionRate,
+            p_commission_free_days: settings.commission_free_days,
+            p_cash_owed_cap_kobo: settings.cash_owed_cap_kobo,
+            p_settlement_due_days: settings.settlement_due_days,
         });
 
         if (error) {
