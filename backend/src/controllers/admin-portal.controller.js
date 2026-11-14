@@ -10,9 +10,10 @@ async function vendorDetail(req,res,next){try{
  const [menu,orders,cashOrders,earningsOrders]=await Promise.all([
   supabase.from('menu_items').select('*').eq('vendor_id',id).order('created_at',{ascending:false}),
   supabase.from('orders').select('id,total_price,subtotal_price,service_fee,commission_amount,status,payment_method,created_at,completed_at,settlement_due_at').eq('vendor_id',id).order('created_at',{ascending:false}).limit(100),
-  supabase.from('orders').select('id,service_fee,commission_amount,settlement_due_at').eq('vendor_id',id).eq('payment_method','cash').eq('status','completed')
+  supabase.from('orders').select('id,service_fee,commission_amount,settlement_due_at').eq('vendor_id',id).eq('payment_method','cash').eq('status','completed'),
+  supabase.from('orders').select('id,subtotal_price,total_price,commission_amount,service_fee').eq('vendor_id',id).eq('status','completed')
  ]);
- for(const x of [menu,orders,cashOrders])if(x.error)throw x.error;
+ for(const x of [menu,orders,cashOrders,earningsOrders])if(x.error)throw x.error;
  const cash=cashOrders.data||[],ids=cash.map(o=>o.id);let lines=[];
  if(ids.length){const x=await supabase.from('vendor_settlement_lines').select('order_id,amount_kobo').in('order_id',ids);if(x.error)throw x.error;lines=x.data||[];}
  const settled=new Map();lines.forEach(l=>settled.set(l.order_id,(settled.get(l.order_id)||0)+Number(l.amount_kobo)));
