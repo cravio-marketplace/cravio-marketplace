@@ -96,11 +96,20 @@ const OrdersScreen = memo(function OrdersScreen({
     ordersError,
     refreshOrders,
     ordersLoading,
+    realtimeStatus,
     lowStock,
     onAddItem,
 }) {
     return (
         <>
+            <div className="flex items-center gap-2 text-[11px] text-gray-500" role="status" aria-live="polite">
+                <span className={`h-2 w-2 rounded-full ${realtimeStatus === 'connected' ? 'bg-green-500' : 'bg-amber-500'}`} />
+                {realtimeStatus === 'connected'
+                    ? 'Live order updates connected'
+                    : realtimeStatus === 'identity_mismatch'
+                        ? 'Live updates unavailable for this account. Orders are refreshing automatically.'
+                        : 'Reconnecting to live updates. Orders are refreshing automatically.'}
+            </div>
             <QuickActions
                 pendingCount={orders.filter((o) => o.status === 'pending').length}
                 lowStockCount={lowStock.length}
@@ -176,6 +185,7 @@ export default function Dashboard() {
         refresh: refreshOrders,
         loading: ordersLoading,
         error: ordersError,
+        realtimeStatus,
     } = useOrders(vendor?.id);
     const { menu, refresh: refreshMenu, remove, setAvailability, restock } = useMenu();
 
@@ -294,6 +304,7 @@ export default function Dashboard() {
                             ordersError={ordersError}
                             refreshOrders={refreshOrders}
                             ordersLoading={ordersLoading}
+                            realtimeStatus={realtimeStatus}
                             lowStock={lowStock}
                             onAddItem={() => {
                                 setActiveView('menu');
