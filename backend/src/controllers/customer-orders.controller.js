@@ -6,21 +6,24 @@ const supabase = require('../config/supabase');
 const { FEES, calculateServiceFee } = require('../config/fees');
 
 const MAX_LINES = 30;
+async function platformFees(){
+ const defaults={service_fee_rate_bps:FEES.customerServiceFee.rateBps,service_fee_min_kobo:FEES.customerServiceFee.minKobo,service_fee_max_kobo:FEES.customerServiceFee.maxKobo,first_order_fee_waived:FEES.customerServiceFee.firstOrderFree,commission_rate_bps:FEES.vendorCommission.rateBps,commission_free_days:FEES.vendorCommission.freeDays,cash_owed_cap_kobo:FEES.cashSettlement.outstandingCapKobo,settlement_due_days:FEES.cashSettlement.dueDays};
+ const {data,error}=await supabase.from('platform_settings').select('key,value');if(error&&error.code!=='42P01')throw error;
+ const values={...defaults};for(const row of data||[]){if(row.key in values)values[row.key]=row.value;}
+ return Object.fromEntries(Object.entries(values).map(([k,v])=>[k,typeof v==='string'&&/^\d+$/.test(v)?Number(v):v]));
+}
+function calcFee(subtotal,settings,first=false){if(settings.first_order_fee_waived&&first)return 0;const rounded=Math.round((subtotal*settings.service_fee_rate_bps)/10000/100)*100;return Math.min(settings.service_fee_max_kobo,Math.max(settings.service_fee_min_kobo,rounded));}
 const MAX_QUANTITY_PER_LINE = 20;
 
 function cleanText(value, maxLength) {
     return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
 }
 
-async function feePreview(req, res, next) {
-    try {
-        const subtotalKobo = Number(req.query.subtotal_kobo);
-        if (!Number.isSafeInteger(subtotalKobo) || subtotalKobo <= 0) return res.status(400).json({ error: 'A valid subtotal in kobo is required.' });
-        const { count, error } = await supabase.from('orders').select('id', { count: 'exact', head: true }).eq('customer_id', req.customer.id);
-        if (error) throw error;
-        const isFirstOrder = (count || 0) === 0;
-        return res.json({ success: true, is_first_order: isFirstOrder, service_fee: calculateServiceFee(subtotalKobo, isFirstOrder), currency_unit: 'kobo' });
-    } catch (error) { return next(error); }
+async function feePreview(req,res,next){
+ try{const subtotalKobo=Number(req.query.subtotal_kobo);if(!Number.isSafeInteger(subtotalKobo)||subtotalKobo<=0)return res.status(400).json({error:'A valid subtotal in kobo is required.'});
+ const [{count,error},settings]=await Promise.all([supabase.from('orders').select('id',{count:'exact',head:true}).eq('customer_id',req.customer.id),platformFees()]);
+ if(error)throw error;const isFirstOrder=(count||0)===0;return res.json({success:true,is_first_order:isFirstOrder,service_fee:calcFee(subtotalKobo,settings,isFirstOrder),currency_unit:'kobo'});
+ }catch(e){return next(e);}
 }
 async function create(req, res, next) {
     try {
@@ -48,11 +51,11 @@ async function create(req, res, next) {
 
         const { data: vendor, error: vendorError } = await supabase
             .from('vendors')
-            .select('id,verification_status,is_accepting_orders,status')
+            .select('id,verification_status,is_accepting_orders,status,admin_suspended,commission_rate_bps_override')
             .eq('id', vendorId)
             .maybeSingle();
         if (vendorError) throw vendorError;
-        if (!vendor || vendor.verification_status !== 'accepted' || vendor.is_accepting_orders !== true || vendor.status === 'closed') {
+        if (!vendor || vendor.verification_status !== 'accepted' || vendor.admin_suspended === true || vendor.is_accepting_orders !== true || vendor.status === 'closed') {
             return res.status(409).json({ error: 'This vendor is not accepting orders right now.' });
         }
 
@@ -69,7 +72,7 @@ async function create(req, res, next) {
             quantities.set(itemId, combined);
         }
 
-        const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
+        const settings=await platformFees();\n        const commissionRate=vendor.commission_rate_bps_override??settings.commission_rate_bps;\n        const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
             p_vendor_id: vendorId,
             p_customer_id: customer.id,
             p_client_order_id: clientOrderId,
@@ -78,14 +81,14 @@ async function create(req, res, next) {
             p_pickup_point: cleanText(pickupPoint, 160),
             p_pickup_instructions: cleanText(pickupInstructions, 500),
             p_items: [...quantities.entries()].map(([menu_item_id, quantity]) => ({ menu_item_id, quantity })),
-            p_service_fee_rate_bps: FEES.customerServiceFee.rateBps,
-            p_service_fee_min_kobo: FEES.customerServiceFee.minKobo,
-            p_service_fee_max_kobo: FEES.customerServiceFee.maxKobo,
-            p_first_order_fee_waived: FEES.customerServiceFee.firstOrderFree,
-            p_commission_rate_bps: FEES.vendorCommission.rateBps,
-            p_commission_free_days: FEES.vendorCommission.freeDays,
-            p_cash_owed_cap_kobo: FEES.cashSettlement.outstandingCapKobo,
-            p_settlement_due_days: FEES.cashSettlement.dueDays,
+            p_service_fee_rate_bps: settings.service_fee_rate_bps,
+            p_service_fee_min_kobo: settings.service_fee_min_kobo,
+            p_service_fee_max_kobo: settings.service_fee_max_kobo,
+            p_first_order_fee_waived: settings.first_order_fee_waived,
+            p_commission_rate_bps: commissionRate,
+            p_commission_free_days: settings.commission_free_days,
+            p_cash_owed_cap_kobo: settings.cash_owed_cap_kobo,
+            p_settlement_due_days: settings.settlement_due_days,
         });
 
         if (error) {
