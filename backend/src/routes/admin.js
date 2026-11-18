@@ -5,6 +5,6 @@ router.get('/orders/export.csv',verifyAdmin,portal.exportOrders);router.get('/or
 router.get('/customers',verifyAdmin,portal.customers);router.get('/customers/:id/orders',verifyAdmin,portal.customerOrders);router.patch('/customers/:id/block',verifyAdmin,portal.customerBlock);
 router.get('/disputes',verifyAdmin,portal.disputes);router.patch('/disputes/:id',verifyAdmin,portal.disputeUpdate);
 router.get('/settings',verifyAdmin,requireSuperAdmin,portal.settings);router.put('/settings',verifyAdmin,requireSuperAdmin,portal.updateSettings);
-router.get('/settlements/export.csv',verifyAdmin,requireSuperAdmin,portal.exportSettlements);router.get('/settlements',verifyAdmin,portal.settlements);router.post('/settlements/:id/record',verifyAdmin,requireSuperAdmin,portal.settlementRecord);
-router.patch('/vendors/:vendorId/reset-activation',verifyAdmin,requireSuperAdmin,ctrl.resetVendorActivation);router.get('/vendors/:vendorId/settlements/summary',verifyAdmin,ctrl.getVendorSettlementSummary);router.post('/vendors/:vendorId/settlements',verifyAdmin,requireSuperAdmin,ctrl.createVendorSettlement);
+router.get('/settlements/export.csv',verifyAdmin,requireSuperAdmin,portal.exportSettlements);router.get('/settlements',verifyAdmin,requireSuperAdmin,portal.settlements);router.post('/settlements/:id/record',verifyAdmin,requireSuperAdmin,portal.settlementRecord);
+router.patch('/vendors/:vendorId/reset-activation',verifyAdmin,requireSuperAdmin,ctrl.resetVendorActivation);router.get('/vendors/:vendorId/settlements/summary',verifyAdmin,requireSuperAdmin,ctrl.getVendorSettlementSummary);router.post('/vendors/:vendorId/settlements',verifyAdmin,requireSuperAdmin,ctrl.createVendorSettlement);
 module.exports=router;
