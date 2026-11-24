@@ -72,7 +72,9 @@ async function create(req, res, next) {
             quantities.set(itemId, combined);
         }
 
-        const settings=await platformFees();\n        const commissionRate=vendor.commission_rate_bps_override??settings.commission_rate_bps;\n        const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
+        const settings = await platformFees();
+        const commissionRate = vendor.commission_rate_bps_override ?? settings.commission_rate_bps;
+        const { data, error } = await supabase.rpc('create_customer_order_with_stock', {
             p_vendor_id: vendorId,
             p_customer_id: customer.id,
             p_client_order_id: clientOrderId,
