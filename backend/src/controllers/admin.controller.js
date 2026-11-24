@@ -230,4 +230,37 @@ async function getDashboard(req,res,next){
 }
 async function getAdminProfile(req,res,next){try{const {data,error}=await supabase.from('admin_profiles').update({last_login_at:new Date().toISOString()}).eq('user_id',req.admin.id).select('user_id,full_name,avatar_url,role,status,last_login_at,created_at').single();if(error)throw error;return res.json({success:true,profile:data,email:req.admin.email});}catch(e){return next(e);}}
 async function listAuditLogs(req,res,next){try{const page=Math.max(1,Number(req.query.page)||1),limit=Math.min(100,Math.max(10,Number(req.query.limit)||25));const {data,error,count}=await supabase.from('admin_audit_logs').select('*',{count:'exact'}).order('created_at',{ascending:false}).range((page-1)*limit,page*limit-1);if(error)throw error;return res.json({success:true,data,total:count,page,limit});}catch(e){return next(e);}}
-module.exports={resetVendorActivation,getVendorSettlementSummary,createVendorSettlement,getDashboard,getAdminProfile,listAuditLogs,writeAudit};
+
+async function updateAdminSelfProfile(req,res,next){
+ try{
+  const body=req.body||{};
+  const allowed=new Set(['full_name','avatar_url']);
+  const unsupported=Object.keys(body).filter(key=>!allowed.has(key));
+  if(unsupported.length)return res.status(400).json({error:'Only full_name and avatar_url can be updated.'});
+  const patch={updated_at:new Date().toISOString()};
+  if(Object.prototype.hasOwnProperty.call(body,'full_name')){
+   if(typeof body.full_name!=='string')return res.status(400).json({error:'full_name must be a string.'});
+   const name=body.full_name.trim();
+   if(name.length<2||name.length>120)return res.status(400).json({error:'full_name must be between 2 and 120 characters.'});
+   patch.full_name=name;
+  }
+  if(Object.prototype.hasOwnProperty.call(body,'avatar_url')){
+   if(body.avatar_url!==null&&typeof body.avatar_url!=='string')return res.status(400).json({error:'avatar_url must be a URL or null.'});
+   if(typeof body.avatar_url==='string'&&body.avatar_url.trim()){
+    let parsed;
+    try{parsed=new URL(body.avatar_url.trim());}catch{return res.status(400).json({error:'avatar_url must be a valid HTTPS URL.'});}
+    if(parsed.protocol!=='https:')return res.status(400).json({error:'avatar_url must use HTTPS.'});
+    patch.avatar_url=parsed.toString();
+   }else patch.avatar_url=null;
+  }
+  if(Object.keys(patch).length===1)return res.status(400).json({error:'Provide at least one profile field to update.'});
+  const before=await supabase.from('admin_profiles').select('user_id,full_name,avatar_url,role,status').eq('user_id',req.admin.id).single();
+  if(before.error)throw before.error;
+  const updated=await supabase.from('admin_profiles').update(patch).eq('user_id',req.admin.id).select('user_id,full_name,avatar_url,role,status,last_login_at,created_at').single();
+  if(updated.error)throw updated.error;
+  await writeAudit(req,'admin_self_profile_update','admin_profile',req.admin.id,before.data,updated.data);
+  return res.json({success:true,profile:updated.data});
+ }catch(error){return next(error);}
+}
+
+module.exports={resetVendorActivation,getVendorSettlementSummary,createVendorSettlement,getDashboard,getAdminProfile,listAuditLogs,updateAdminSelfProfile,writeAudit};
